@@ -1,0 +1,24 @@
+# Backend Framework
+django==4.2.13
+
+# API Framework
+djangorestframework==3.14.0
+
+# Multi-tenancy
+django-tenants==3.5.0
+
+# PostgreSQL Driver
+psycopg2-binary
+
+# Environment Variables from .env file
+python-dotenv
+#libreria para documentacion de la API
+
+drf-spectacular
+#libreria para autenticacion con JWT
+djangorestframework-simplejwt
+# Testing
+pytest
+pytest-django
+pytest-cov
+django-cors-headers
