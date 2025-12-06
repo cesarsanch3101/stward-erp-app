@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Box, Typography, Button, Paper, Alert, Chip, Tooltip 
+  Box, Typography, Button, Paper, Alert, Chip 
 } from '@mui/material';
 import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
-import DescriptionIcon from '@mui/icons-material/Description'; // Icono para Asientos
+import DescriptionIcon from '@mui/icons-material/Description';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,7 +23,7 @@ const JournalEntryListPage = () => {
     if (!tokens?.access) return;
     try {
       setLoading(true);
-      // Asumimos que esta función existe en accountingService.js (GET /journal-entries/)
+      // Asumimos que esta función existe en accountingService.js
       const data = await getJournalEntries(tokens.access);
       const rows = Array.isArray(data) ? data : (data.results || []);
       setEntries(rows);
@@ -43,10 +43,10 @@ const JournalEntryListPage = () => {
     { field: 'id', headerName: 'ID', width: 90 },
     { 
       field: 'date', 
-      headerName: 'Fecha Contable', 
+      headerName: 'Fecha', 
       width: 130, 
       type: 'date',
-      valueGetter: (value) => value && new Date(value), // Convierte string a Date para ordenar correctamente
+      valueGetter: (value) => value && new Date(value),
     },
     { 
       field: 'description', 
@@ -56,11 +56,10 @@ const JournalEntryListPage = () => {
     },
     { 
       field: 'created_by_username', 
-      headerName: 'Registrado Por', 
-      width: 160,
+      headerName: 'Usuario', 
+      width: 150,
       renderCell: (params) => (
         <Chip 
-          avatar={<DescriptionIcon />} 
           label={params.value || 'Sistema'} 
           variant="outlined" 
           size="small" 
@@ -69,33 +68,31 @@ const JournalEntryListPage = () => {
     },
     {
       field: 'total_amount', 
-      headerName: 'Monto Total', 
+      headerName: 'Monto', 
       width: 150,
       align: 'right',
       headerAlign: 'right',
-      // Calculamos el total sumando los 'debits' de los items anidados
+      // Calculamos el total sumando los 'debits' de los items
       valueGetter: (value, row) => {
         if (!row.items || !Array.isArray(row.items)) return 0;
-        const total = row.items.reduce((sum, item) => sum + Number(item.debit), 0);
-        return total;
+        return row.items.reduce((sum, item) => sum + Number(item.debit), 0);
       },
-      // Formateamos como moneda
       valueFormatter: (value) => {
         if (value == null) return '';
-        return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        return `$${Number(value).toFixed(2)}`;
       },
-      cellClassName: 'font-bold-cell', // Clase para negrita (opcional si usas CSS custom)
+      cellClassName: 'font-bold-cell',
     },
     {
       field: 'actions',
       headerName: 'Detalle',
-      width: 120,
+      width: 100,
       sortable: false,
       renderCell: (params) => (
         <Button 
           startIcon={<VisibilityIcon />}
           size="small"
-          onClick={() => console.log("Ver detalle ID:", params.id)} // Placeholder para futura vista de detalle
+          onClick={() => console.log("Ver detalle", params.id)}
         >
           Ver
         </Button>
@@ -104,18 +101,17 @@ const JournalEntryListPage = () => {
   ];
 
   return (
-    <Box sx={{ height: 'calc(100vh - 100px)', width: '100%', p: 1 }}>
+    <Box sx={{ height: 'calc(100vh - 100px)', width: '100%' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
           <DescriptionIcon fontSize="large" color="primary" />
           Libro Diario
         </Typography>
         <Button 
           variant="contained" 
-          color="success" // Verde contable
+          color="success"
           startIcon={<AddIcon />} 
           onClick={() => navigate('/journal-entries/new')}
-          size="large"
         >
           Nuevo Asiento
         </Button>
@@ -130,7 +126,7 @@ const JournalEntryListPage = () => {
           loading={loading}
           initialState={{
             pagination: { paginationModel: { pageSize: 15 } },
-            sorting: { sortModel: [{ field: 'date', sort: 'desc' }] }, // Lo más reciente primero
+            sorting: { sortModel: [{ field: 'date', sort: 'desc' }] },
           }}
           pageSizeOptions={[15, 30, 50]}
           disableRowSelectionOnClick
@@ -143,7 +139,6 @@ const JournalEntryListPage = () => {
           sx={{
             '& .font-bold-cell': {
               fontWeight: 'bold',
-              color: 'text.primary',
             },
           }}
         />

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, Typography, Button, Paper, Alert, Chip, IconButton, Tooltip 
 } from '@mui/material';
-import { DataGrid, GridToolbar } from '@mui/x-data-grid'; // GridToolbar añade buscador y exportar
+import { DataGrid, GridToolbar } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -13,13 +13,13 @@ import { useNavigate } from 'react-router-dom';
 import { getAccounts } from '../api/accountingService';
 import { useAuth } from '../context/AuthContext';
 
-// Mapeo de colores para los tipos de cuenta (Estándar visual ERP)
+// Mapeo de colores para los tipos de cuenta
 const ACCOUNT_TYPE_COLORS = {
-  ASSET: 'primary',      // Activo: Azul (Corporativo)
-  LIABILITY: 'warning',  // Pasivo: Naranja (Precaución)
-  EQUITY: 'success',     // Patrimonio: Verde (Positivo)
-  REVENUE: 'info',       // Ingresos: Celeste (Flujo)
-  EXPENSE: 'error',      // Gastos: Rojo (Salida)
+  ASSET: 'primary',      // Activo: Azul
+  LIABILITY: 'warning',  // Pasivo: Naranja
+  EQUITY: 'success',     // Patrimonio: Verde
+  REVENUE: 'info',       // Ingresos: Celeste
+  EXPENSE: 'error',      // Gastos: Rojo
 };
 
 const AccountListPage = () => {
@@ -36,12 +36,12 @@ const AccountListPage = () => {
       setLoading(true);
       setError(null);
       const data = await getAccounts(tokens.access);
-      // El DataGrid requiere un array. Si la API pagina (results), extraemos el array.
+      // DataGrid necesita un array plano. Si tu API pagina, ajusta aquí.
       const rows = Array.isArray(data) ? data : (data.results || []);
       setAccounts(rows);
     } catch (err) {
       console.error(err);
-      setError("No se pudo cargar el Plan de Cuentas. Verifique su conexión.");
+      setError("No se pudo cargar el Plan de Cuentas.");
     } finally {
       setLoading(false);
     }
@@ -51,7 +51,6 @@ const AccountListPage = () => {
     fetchAccounts();
   }, [tokens]);
 
-  // Definición de Columnas "Enterprise"
   const columns = [
     { 
       field: 'code', 
@@ -81,13 +80,13 @@ const AccountListPage = () => {
     },
     { 
       field: 'parent', 
-      headerName: 'Jerarquía (Padre)', 
+      headerName: 'Cuenta Padre', 
       width: 150,
       valueGetter: (value, row) => {
         if (!value) return '— (Raíz)';
-        // Buscamos el código del padre en la lista cargada para mostrar algo útil
+        // Intentamos buscar el nombre del padre en la lista cargada
         const parent = accounts.find(a => a.id === value);
-        return parent ? `${parent.code} - ${parent.name}` : `ID: ${value}`;
+        return parent ? `${parent.code}` : value;
       }
     },
     {
@@ -96,9 +95,9 @@ const AccountListPage = () => {
       width: 100,
       sortable: false,
       renderCell: (params) => (
-        <Tooltip title="Editar Cuenta">
+        <Tooltip title="Editar">
           <IconButton 
-            onClick={() => navigate(`/accounts/${params.row.id}/edit`)} // Asumiendo que crearás la ruta de edición
+            onClick={() => console.log("Editar", params.id)} 
             size="small" 
             color="primary"
           >
@@ -110,10 +109,9 @@ const AccountListPage = () => {
   ];
 
   return (
-    <Box sx={{ height: 'calc(100vh - 100px)', width: '100%', p: 1 }}>
-      {/* Cabecera de Página */}
+    <Box sx={{ height: 'calc(100vh - 100px)', width: '100%' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 500, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
           <AccountBalanceIcon fontSize="large" color="action" />
           Plan de Cuentas
         </Typography>
@@ -121,8 +119,7 @@ const AccountListPage = () => {
             <Button 
               startIcon={<RefreshIcon />} 
               onClick={fetchAccounts} 
-              sx={{ mr: 1 }} 
-              disabled={loading}
+              sx={{ mr: 1 }}
             >
               Actualizar
             </Button>
@@ -130,7 +127,6 @@ const AccountListPage = () => {
               variant="contained" 
               startIcon={<AddIcon />} 
               onClick={() => navigate('/accounts/new')}
-              disableElevation
             >
               Nueva Cuenta
             </Button>
@@ -139,20 +135,19 @@ const AccountListPage = () => {
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {/* DataGrid Profesional */}
-      <Paper elevation={2} sx={{ height: '100%', width: '100%', overflow: 'hidden' }}>
+      <Paper elevation={2} sx={{ height: '100%', width: '100%' }}>
         <DataGrid
           rows={accounts}
           columns={columns}
           loading={loading}
           initialState={{
             pagination: { paginationModel: { pageSize: 25 } },
-            sorting: { sortModel: [{ field: 'code', sort: 'asc' }] }, // Orden contable natural
+            sorting: { sortModel: [{ field: 'code', sort: 'asc' }] },
           }}
           pageSizeOptions={[25, 50, 100]}
           disableRowSelectionOnClick
-          density="compact" // Alta densidad de datos (estilo Excel)
-          slots={{ toolbar: GridToolbar }} // Barra de herramientas avanzada (Filtros, Exportar)
+          density="compact"
+          slots={{ toolbar: GridToolbar }}
           slotProps={{
             toolbar: {
               showQuickFilter: true,
