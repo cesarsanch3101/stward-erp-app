@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import {
   Box, TextField, Button, Typography, Container, Grid, Paper, Alert, CircularProgress
 } from '@mui/material';
-// Importamos el servicio correcto de COMPRAS (purchasingService)
+import SaveIcon from '@mui/icons-material/Save';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+// Importamos el servicio correcto de COMPRAS
 import { createSupplier } from '../api/purchasingService';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
@@ -41,14 +43,12 @@ const SupplierFormPage = () => {
     }
 
     try {
-      // Llamamos a la función correcta para crear PROVEEDOR
+      // Llamamos a la función para crear PROVEEDOR (no ventas)
       await createSupplier(formData, tokens.access);
       console.log('Proveedor creado con éxito');
-      // Redirigir a la lista de proveedores
-      navigate('/suppliers');
+      navigate('/suppliers'); // Volver a la lista
     } catch (err) {
       console.error('Error al crear proveedor:', err);
-      // Extraer mensaje de error legible
       const errorMsg = err.response?.data?.detail || err.message || 'Error al guardar el proveedor.';
       setError(errorMsg);
     } finally {
@@ -58,7 +58,10 @@ const SupplierFormPage = () => {
 
   return (
     <Container component="main" maxWidth="md">
-      <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
+      <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/suppliers')} sx={{ mb: 2, mt: 2 }}>
+        Volver
+      </Button>
+      <Paper elevation={3} sx={{ p: 4 }}>
         <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
           Añadir Nuevo Proveedor
         </Typography>
@@ -130,9 +133,10 @@ const SupplierFormPage = () => {
             <Button 
                 type="submit" 
                 variant="contained" 
+                startIcon={loading ? <CircularProgress size={20} color="inherit"/> : <SaveIcon />}
                 disabled={loading}
             >
-                {loading ? <CircularProgress size={24} /> : 'Guardar Proveedor'}
+                {loading ? 'Guardando...' : 'Guardar Proveedor'}
             </Button>
           </Box>
         </Box>

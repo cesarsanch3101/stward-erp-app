@@ -5,16 +5,18 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import AddIcon from '@mui/icons-material/Add';
+// Importamos los servicios y hooks necesarios
 import { getSuppliers, deleteSupplier } from '../api/purchasingService.js';
 import { useAuth } from '../context/AuthContext.jsx';
-import { useNavigate } from 'react-router-dom'; // Import activo
+import { useNavigate } from 'react-router-dom'; 
 
 const SupplierListPage = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { tokens } = useAuth();
-  const navigate = useNavigate(); // Hook activo
+  const navigate = useNavigate();
 
   const fetchSuppliers = async () => {
     if (!tokens?.access) {
@@ -25,7 +27,7 @@ const SupplierListPage = () => {
       const data = await getSuppliers(tokens.access);
       setSuppliers(data || []);
     } catch (err) {
-      setError('Error loading suppliers.'); console.error(err);
+      setError('Error al cargar proveedores.'); console.error(err);
     } finally {
       setLoading(false);
     }
@@ -36,20 +38,21 @@ const SupplierListPage = () => {
   }, [tokens]);
 
   const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de que quieres borrar este proveedor?')) {
+    if (window.confirm('¿Estás seguro de borrar este proveedor?')) {
       try {
         await deleteSupplier(id, tokens.access);
-        fetchSuppliers();
+        fetchSuppliers(); // Recargar lista
       } catch (err) {
-        setError(err.message || 'Error deleting supplier.');
+        setError('Error al borrar el proveedor.');
       }
     }
   };
 
   const handleEdit = (id) => {
-    console.log("Edit supplier", id);
-    // navigate(`/suppliers/edit/${id}`); // Aún no tenemos la página de editar proveedor, lo dejamos pendiente pero listo.
-    alert("Funcionalidad de editar proveedor en construcción");
+    // Nota: Necesitas crear la página 'SupplierEditPage' y agregar la ruta en App.jsx para que esto funcione
+    console.log("Editar proveedor", id);
+    alert("Funcionalidad de editar proveedor pendiente de implementación.");
+    // navigate(`/suppliers/edit/${id}`); 
   };
 
   return (
@@ -59,11 +62,14 @@ const SupplierListPage = () => {
          <Button 
             variant="contained" 
             color="primary"
-            onClick={() => navigate('/suppliers/new')} // ¡Botón Añadir ACTIVADO!
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/suppliers/new')} // Navegación al formulario correcto
          >
             Añadir Proveedor
          </Button>
        </Box>
+
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <TableContainer component={Paper}>
         <Table>
@@ -79,8 +85,6 @@ const SupplierListPage = () => {
           <TableBody>
             {loading ? (
                <TableRow><TableCell colSpan={5} align="center"><CircularProgress /></TableCell></TableRow>
-            ) : error ? (
-               <TableRow><TableCell colSpan={5} align="center"><Alert severity="error">{error}</Alert></TableCell></TableRow>
             ) : suppliers.length === 0 ? (
               <TableRow><TableCell colSpan={5} align="center">No se encontraron proveedores.</TableCell></TableRow>
             ) : (
