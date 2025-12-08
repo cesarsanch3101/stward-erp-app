@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # --- Secretos y Hosts ---
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost,tesla.localhost').split(',')
 
 # --- Aplicaciones ---
 SHARED_APPS = [
@@ -110,6 +110,7 @@ TENANT_DOMAIN_MODEL = "tenants.Domain"
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://tesla.localhost:5173"
 ]
 
 # --- CONFIGURACIÓN DE DRF Y SWAGGER ---

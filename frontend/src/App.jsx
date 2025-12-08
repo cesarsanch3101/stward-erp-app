@@ -11,9 +11,7 @@ import ProductListPage from './pages/ProductListPage.jsx';
 import CustomerListPage from './pages/CustomerListPage.jsx';
 import SupplierListPage from './pages/SupplierListPage.jsx';
 import SalesOrderListPage from './pages/SalesOrderListPage.jsx';
-// Listados de Tesorería (Fase 18)
 import BankAccountListPage from './pages/BankAccountListPage.jsx';
-// Listados de Contabilidad (Fase 19) - ¡Próximo paso a crear!
 import AccountListPage from './pages/AccountListPage.jsx';
 import JournalEntryListPage from './pages/JournalEntryListPage.jsx';
 
@@ -23,14 +21,14 @@ import ProductFormPage from './pages/ProductFormPage.jsx';
 import CustomerFormPage from './pages/CustomerFormPage.jsx';
 import SupplierFormPage from './pages/SupplierFormPage.jsx';
 import SalesOrderFormPage from './pages/SalesOrderFormPage.jsx';
-// Formularios de Tesorería (Fase 18)
 import BankAccountFormPage from './pages/BankAccountFormPage.jsx';
-// Formularios de Contabilidad (Fase 19)
 import AccountFormPage from './pages/AccountFormPage.jsx';
 import JournalEntryFormPage from './pages/JournalEntryFormPage.jsx';
 
-// 4. Páginas de Edición
+// 4. Páginas de Edición y Detalle (¡Las nuevas!)
 import EmployeeEditPage from './pages/EmployeeEditPage.jsx';
+import CustomerEditPage from './pages/CustomerEditPage.jsx';
+import SalesOrderDetailPage from './pages/SalesOrderDetailPage.jsx';
 
 // Componentes de Estructura
 import Layout from './components/Layout.jsx';
@@ -67,19 +65,21 @@ function App() {
           {/* --- MÓDULO VENTAS --- */}
           <Route path="customers" element={<CustomerListPage />} />
           <Route path="customers/new" element={<CustomerFormPage />} />
+          <Route path="customers/edit/:id" element={<CustomerEditPage />} /> 
           
           <Route path="sales-orders" element={<SalesOrderListPage />} />
           <Route path="sales-orders/new" element={<SalesOrderFormPage />} />
+          <Route path="sales-orders/:id" element={<SalesOrderDetailPage />} />
 
           {/* --- MÓDULO COMPRAS --- */}
           <Route path="suppliers" element={<SupplierListPage />} />
           <Route path="suppliers/new" element={<SupplierFormPage />} />
 
-          {/* --- MÓDULO TESORERÍA (Fase 18) --- */}
+          {/* --- MÓDULO TESORERÍA --- */}
           <Route path="bank-accounts" element={<BankAccountListPage />} />
           <Route path="bank-accounts/new" element={<BankAccountFormPage />} />
 
-          {/* --- MÓDULO CONTABILIDAD (Fase 19) --- */}
+          {/* --- MÓDULO CONTABILIDAD --- */}
           {/* Plan de Cuentas */}
           <Route path="accounts" element={<AccountListPage />} />
           <Route path="accounts/new" element={<AccountFormPage />} />

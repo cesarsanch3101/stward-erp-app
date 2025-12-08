@@ -96,3 +96,30 @@ export const createSalesOrder = async (orderData, token) => {
     throw new Error(errorDetail);
   }
 };
+// FUNCIÓN: Facturar Orden (Generar Asiento) ---
+export const invoiceSalesOrder = async (id, token) => {
+  try {
+    // Llamamos al endpoint personalizado que creamos en Django
+    const response = await apiClient.post(`/sales-orders/${id}/invoice/`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error facturando orden ${id}:`, error);
+    // Extraemos el mensaje de error limpio del backend (ej: "Falta cuenta contable")
+    const errorMsg = error.response?.data?.detail || error.message || 'Error al facturar.';
+    throw new Error(errorMsg);
+  }
+};
+// Obtener detalles de una orden específica
+export const getSalesOrder = async (id, token) => {
+  try {
+    const response = await apiClient.get(`/sales-orders/${id}/`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error fetching order ${id}:`, error);
+    throw error;
+  }
+};

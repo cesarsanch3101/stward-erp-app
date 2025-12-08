@@ -5,31 +5,21 @@ services:
     image: postgres:16
     container_name: stward_postgres
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: stward_user      # Coincide con .env
+      POSTGRES_PASSWORD: stward_password
+      POSTGRES_DB: stward_db
     ports:
-      - "5432:5432"
+      - "5433:5432"  # <--- CLAVE: Exponemos el 5432 interno en el 5433 de tu PC
     volumes:
       - postgres_data:/var/lib/postgresql/data/
 
   web:
     build: .
-    container_name: stward_web
-    command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/app
-    ports:
-      - "8000:8000"
+    # ... resto del archivo igual ...
     environment:
-      - SECRET_KEY=${SECRET_KEY}
-      - DEBUG=${DEBUG}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=db # ¡Importante!
-      - DB_PORT=${DB_PORT}
+      # ...
+      - DB_HOST=db  # El contenedor web sí usa el nombre interno 'db'
+      - DB_PORT=5432 # El contenedor web se conecta al puerto interno estándar
     depends_on:
       - db
 

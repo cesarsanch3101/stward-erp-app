@@ -1,27 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Button, IconButton, Alert } from '@mui/material';
-import { DataGrid } from '@mui/x-data-grid'; // <--- ¡El componente profesional!
+import { DataGrid } from '@mui/x-data-grid';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
+// 1. IMPORTAR useNavigate (Faltaba esto)
+import { useNavigate } from 'react-router-dom';
 
 import { getProducts, deleteProduct } from '../api/inventoryService.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
-// Estilos para el DataGrid (Opcional: para que se parezca más a un ERP denso)
 const gridStyles = {
   height: 600, 
   width: '100%',
-  '& .MuiDataGrid-root': {
-    border: 'none',
-  },
-  '& .MuiDataGrid-cell': {
-    borderBottom: '1px solid #303030', // Líneas sutiles en modo oscuro
-  },
-  '& .MuiDataGrid-columnHeaders': {
-    backgroundColor: '#1e1e1e', // Cabecera más oscura
-    borderBottom: '2px solid #505050',
-  },
+  '& .MuiDataGrid-root': { border: 'none' },
+  '& .MuiDataGrid-cell': { borderBottom: '1px solid #303030' },
+  '& .MuiDataGrid-columnHeaders': { backgroundColor: '#1e1e1e', borderBottom: '2px solid #505050' },
 };
 
 const ProductListPage = () => {
@@ -29,6 +23,9 @@ const ProductListPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { tokens } = useAuth();
+  
+  // 2. INICIALIZAR EL HOOK (Faltaba esto)
+  const navigate = useNavigate();
 
   const fetchProducts = async () => {
     if (!tokens?.access) return;
@@ -51,7 +48,7 @@ const ProductListPage = () => {
     if (window.confirm('¿Estás seguro de eliminar este producto?')) {
       try {
         await deleteProduct(id, tokens.access);
-        fetchProducts(); // Recargar la lista
+        fetchProducts();
       } catch (err) {
         alert('Error al eliminar');
       }
@@ -60,11 +57,9 @@ const ProductListPage = () => {
 
   const handleEdit = (id) => {
     console.log("Editar producto", id);
-    // Aquí conectaremos el router para editar en el futuro
-    // navigate(`/products/edit/${id}`);
+    // navigate(`/products/edit/${id}`); // Esto lo activaremos luego
   };
 
-  // --- DEFINICIÓN DE COLUMNAS (La parte clave del DataGrid) ---
   const columns = [
     { field: 'id', headerName: 'ID', width: 70 },
     { field: 'name', headerName: 'Nombre', flex: 1, minWidth: 150 },
@@ -95,11 +90,13 @@ const ProductListPage = () => {
         <Typography variant="h4" component="h1">
           Inventario
         </Typography>
+        
+        {/* 3. ACTIVAR EL ONCLICK (Estaba comentado) */}
         <Button 
           variant="contained" 
           color="primary" 
           startIcon={<AddIcon />}
-          // onClick={() => navigate('/products/new')} // Descomentar cuando tengamos la ruta
+          onClick={() => navigate('/products/new')} 
         >
           Nuevo Producto
         </Button>
@@ -112,13 +109,9 @@ const ProductListPage = () => {
           rows={products}
           columns={columns}
           loading={loading}
-          initialState={{
-            pagination: {
-              paginationModel: { page: 0, pageSize: 10 },
-            },
-          }}
+          initialState={{ pagination: { paginationModel: { page: 0, pageSize: 10 } } }}
           pageSizeOptions={[5, 10, 20]}
-          checkboxSelection // ¡Estilo ERP! Permite seleccionar filas
+          checkboxSelection
           disableRowSelectionOnClick
         />
       </Box>

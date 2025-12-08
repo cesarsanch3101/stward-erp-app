@@ -1,43 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Button, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, CircularProgress, Alert, IconButton
+  TableContainer, TableHead, TableRow, CircularProgress, Alert
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-
-// Importamos el servicio y el contexto
 import { getBankAccounts } from '../api/treasuryService';
 import { useAuth } from '../context/AuthContext.jsx';
-// import { useNavigate } from 'react-router-dom'; // Para el futuro
+import { useNavigate } from 'react-router-dom'; // Import activo
 
 const BankAccountListPage = () => {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { tokens } = useAuth();
-  // const navigate = useNavigate();
+  const navigate = useNavigate(); // Hook activo
 
   useEffect(() => {
     const fetchAccounts = async () => {
       if (!tokens?.access) {
-        setError("Autenticación requerida.");
-        setLoading(false);
-        return;
+        setError("Autenticación requerida."); setLoading(false); return;
       }
-
       try {
         setLoading(true);
         const data = await getBankAccounts(tokens.access);
         setAccounts(data || []);
       } catch (err) {
-        setError('Error al cargar las cuentas bancarias.');
-        console.error(err);
+        setError('Error al cargar las cuentas bancarias.'); console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchAccounts();
   }, [tokens]);
 
@@ -51,7 +44,7 @@ const BankAccountListPage = () => {
           variant="contained" 
           color="primary" 
           startIcon={<AddIcon />}
-          // onClick={() => navigate('/bank-accounts/new')}
+          onClick={() => navigate('/bank-accounts/new')} // ¡Activado!
         >
           Nueva Cuenta
         </Button>
@@ -74,9 +67,7 @@ const BankAccountListPage = () => {
             </TableHead>
             <TableBody>
               {accounts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center">No hay cuentas registradas.</TableCell>
-                </TableRow>
+                <TableRow><TableCell colSpan={5} align="center">No hay cuentas registradas.</TableCell></TableRow>
               ) : (
                 accounts.map((acc) => (
                   <TableRow key={acc.id}>
