@@ -5,64 +5,64 @@ from accounting.models import JournalEntry, JournalItem, Account
 
 def receive_purchase_order(purchase_order, user):
     """
-    Procesa la recepción de una Orden de Compra:
-    1. Aumenta el stock de los productos.
-    2. Genera el asiento contable (Activo vs Pasivo).
+    Enterprise Logic:
+    1. Valida estado.
+    2. Aumenta Stock Físico (Inventario).
+    3. Genera Asiento Contable (Débito Inventario / Crédito Proveedores).
     """
     if purchase_order.status == 'Completed':
-        raise ValidationError("Esta orden ya ha sido recibida y completada.")
+        raise ValidationError("Esta orden ya ha sido recibida.")
     
     if purchase_order.total_amount <= 0:
-        raise ValidationError("No se puede recibir una orden con monto cero.")
+        raise ValidationError("Monto inválido para recepción.")
 
-    # Buscar Cuenta de Pasivo (Proveedores / Cuentas por Pagar)
-    # Ej: 2205 - Proveedores Nacionales
+    # 1. Buscar Cuenta de Pasivo (Proveedores - 2205)
     try:
         payable_account = Account.objects.get(code='2205') 
     except Account.DoesNotExist:
-        raise ValidationError("Falta configurar la cuenta '2205' (Proveedores) en el Plan de Cuentas.")
+        raise ValidationError("Error Configuración: Falta cuenta '2205' (Proveedores).")
 
     with transaction.atomic():
-        # 1. Crear Cabecera del Asiento
+        # 2. Crear Asiento (Cabecera)
         entry = JournalEntry.objects.create(
             date=timezone.now().date(),
-            description=f"Recepción Compra PO #{purchase_order.id} - Prov: {purchase_order.supplier.name}",
+            description=f"Recepción PO-{purchase_order.id} | Prov: {purchase_order.supplier.name}",
             created_by=user
         )
 
-        # 2. Asiento: CRÉDITO a Proveedores (Pasivo aumenta)
+        # 3. Registrar Deuda (Crédito a Proveedores)
         JournalItem.objects.create(
             journal_entry=entry,
             account=payable_account,
             debit=0,
             credit=purchase_order.total_amount,
-            description=f"CxP Proveedor: {purchase_order.supplier.name}"
+            description=f"CxP - Orden #{purchase_order.id}"
         )
 
-        # 3. Procesar Items: Aumentar Stock y DÉBITO a Inventario
+        # 4. Procesar cada producto
         for item in purchase_order.items.all():
             product = item.product
             
-            # Validación de cuenta de activo
+            # Validar configuración contable del producto
             if not product.category or not product.category.asset_account:
                 raise ValidationError(
-                    f"El producto '{product.name}' no tiene configurada una Cuenta de Activo (Inventario) en su Categoría."
+                    f"El producto '{product.name}' no tiene cuenta de Activo configurada en su Categoría."
                 )
             
-            # A. Aumentar Stock Físico
+            # A. AUMENTAR STOCK
             product.current_stock += item.quantity
             product.save()
 
-            # B. Asiento: DÉBITO a Inventario (Activo aumenta)
+            # B. REGISTRAR ACTIVO (Débito a Inventario)
             JournalItem.objects.create(
                 journal_entry=entry,
                 account=product.category.asset_account,
-                debit=item.total_price, # Costo total del item
+                debit=item.total_price,
                 credit=0,
-                description=f"Entrada Almacén: {product.name} (x{item.quantity})"
+                description=f"Entrada: {product.name} (+{item.quantity})"
             )
 
-        # 4. Actualizar estado de la Orden
+        # 5. Cerrar Orden
         purchase_order.status = 'Completed'
         purchase_order.save()
 

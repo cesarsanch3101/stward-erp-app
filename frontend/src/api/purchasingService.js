@@ -84,3 +84,29 @@ export const receivePurchaseOrder = async (id, token) => {
     throw new Error(errorMsg);
   }
 };
+// --- ÓRDENES DE COMPRA (PURCHASE ORDERS) ---
+
+export const getPurchaseOrders = async (token) => {
+  try {
+    const response = await apiClient.get('/purchase-orders/', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching purchase orders:", error);
+    throw error;
+  }
+};
+
+export const createPurchaseOrder = async (orderData, token) => {
+  try {
+    const response = await apiClient.post('/purchase-orders/', orderData, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error creating purchase order:", error);
+    const errorMsg = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+    throw new Error(errorMsg);
+  }
+};

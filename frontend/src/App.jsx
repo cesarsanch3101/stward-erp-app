@@ -14,6 +14,8 @@ import SalesOrderListPage from './pages/SalesOrderListPage.jsx';
 import BankAccountListPage from './pages/BankAccountListPage.jsx';
 import AccountListPage from './pages/AccountListPage.jsx';
 import JournalEntryListPage from './pages/JournalEntryListPage.jsx';
+// ¡NUEVO! Importamos la lista de compras
+import PurchaseOrderListPage from './pages/PurchaseOrderListPage.jsx';
 
 // 3. Páginas de Formularios
 import EmployeeFormPage from './pages/EmployeeFormPage.jsx';
@@ -24,8 +26,10 @@ import SalesOrderFormPage from './pages/SalesOrderFormPage.jsx';
 import BankAccountFormPage from './pages/BankAccountFormPage.jsx';
 import AccountFormPage from './pages/AccountFormPage.jsx';
 import JournalEntryFormPage from './pages/JournalEntryFormPage.jsx';
+// ¡NUEVO! Importamos el formulario de compras
+import PurchaseOrderFormPage from './pages/PurchaseOrderFormPage.jsx';
 
-// 4. Páginas de Edición y Detalle (¡Las nuevas!)
+// 4. Páginas de Edición y Detalle
 import EmployeeEditPage from './pages/EmployeeEditPage.jsx';
 import CustomerEditPage from './pages/CustomerEditPage.jsx';
 import SalesOrderDetailPage from './pages/SalesOrderDetailPage.jsx';
@@ -34,7 +38,6 @@ import SalesOrderDetailPage from './pages/SalesOrderDetailPage.jsx';
 import Layout from './components/Layout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
-// Layout principal de la aplicación (Menú lateral + Contenido)
 const AppLayout = () => (
   <Layout>
     <Outlet />
@@ -44,53 +47,49 @@ const AppLayout = () => (
 function App() {
   return (
     <Routes>
-      {/* Ruta pública: Login */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Rutas Protegidas (Requieren autenticación) */}
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<AppLayout />}>
-          {/* Dashboard Principal */}
           <Route index element={<DashboardPage />} />
           
-          {/* --- MÓDULO RRHH --- */}
+          {/* RRHH */}
           <Route path="employees" element={<EmployeeListPage />} />
           <Route path="employees/new" element={<EmployeeFormPage />} />
           <Route path="employees/edit/:id" element={<EmployeeEditPage />} />
 
-          {/* --- MÓDULO INVENTARIO --- */}
+          {/* Inventario */}
           <Route path="products" element={<ProductListPage />} />
           <Route path="products/new" element={<ProductFormPage />} />
 
-          {/* --- MÓDULO VENTAS --- */}
+          {/* Ventas */}
           <Route path="customers" element={<CustomerListPage />} />
           <Route path="customers/new" element={<CustomerFormPage />} />
           <Route path="customers/edit/:id" element={<CustomerEditPage />} /> 
-          
           <Route path="sales-orders" element={<SalesOrderListPage />} />
           <Route path="sales-orders/new" element={<SalesOrderFormPage />} />
           <Route path="sales-orders/:id" element={<SalesOrderDetailPage />} />
 
-          {/* --- MÓDULO COMPRAS --- */}
+          {/* Compras */}
           <Route path="suppliers" element={<SupplierListPage />} />
           <Route path="suppliers/new" element={<SupplierFormPage />} />
+          {/* ¡AQUÍ ESTÁN LAS RUTAS NUEVAS! */}
+          <Route path="purchase-orders" element={<PurchaseOrderListPage />} />
+          <Route path="purchase-orders/new" element={<PurchaseOrderFormPage />} />
 
-          {/* --- MÓDULO TESORERÍA --- */}
+          {/* Tesorería */}
           <Route path="bank-accounts" element={<BankAccountListPage />} />
           <Route path="bank-accounts/new" element={<BankAccountFormPage />} />
 
-          {/* --- MÓDULO CONTABILIDAD --- */}
-          {/* Plan de Cuentas */}
+          {/* Contabilidad */}
           <Route path="accounts" element={<AccountListPage />} />
           <Route path="accounts/new" element={<AccountFormPage />} />
-          {/* Asientos de Diario */}
           <Route path="journal-entries" element={<JournalEntryListPage />} />
           <Route path="journal-entries/new" element={<JournalEntryFormPage />} />
 
         </Route>
       </Route>
 
-      {/* Cualquier ruta no encontrada redirige al inicio */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

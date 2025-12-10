@@ -4,8 +4,7 @@ class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     
-    # --- CUENTAS CONTABLES ---
-    # Cuenta 4100 (Ingresos) - Ya la tenías
+    # Cuenta de Ingresos (4100 - Ventas)
     income_account = models.ForeignKey(
         'accounting.Account', 
         on_delete=models.PROTECT, 
@@ -15,8 +14,7 @@ class Category(models.Model):
         verbose_name="Cuenta de Ingresos (Ventas)"
     )
     
-    # --- NUEVO: Cuenta de Activo (Inventario) ---
-    # Ej: Cuenta 1435 - Mercancía no fabricada por la empresa
+    # --- NUEVO: Cuenta de Activo (1435 - Inventario) ---
     asset_account = models.ForeignKey(
         'accounting.Account', 
         on_delete=models.PROTECT, 
@@ -46,7 +44,7 @@ class Product(models.Model):
     unit_of_measure = models.ForeignKey(UnitOfMeasure, on_delete=models.PROTECT, related_name='products')
     sku = models.CharField(max_length=100, unique=True, blank=True, null=True)
     
-    # --- NUEVO: Control de Stock ---
+    # --- NUEVO: Control de Stock Físico ---
     current_stock = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
     def __str__(self):
