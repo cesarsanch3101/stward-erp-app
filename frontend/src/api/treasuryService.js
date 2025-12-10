@@ -14,6 +14,18 @@ export const getBankAccounts = async (token) => {
     throw error;
   }
 };
+// --- CAJAS CHICAS ---
+export const getCashRegisters = async (token) => {
+  try {
+    const response = await apiClient.get('/cash-registers/', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching cash registers:", error);
+    throw error;
+  }
+};
 
 // Crear una nueva cuenta bancaria
 export const createBankAccount = async (data, token) => {

@@ -37,6 +37,7 @@ import SalesOrderDetailPage from './pages/SalesOrderDetailPage.jsx';
 // Componentes de Estructura
 import Layout from './components/Layout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import KardexPage from './pages/KardexPage.jsx';
 
 const AppLayout = () => (
   <Layout>
@@ -61,6 +62,7 @@ function App() {
           {/* Inventario */}
           <Route path="products" element={<ProductListPage />} />
           <Route path="products/new" element={<ProductFormPage />} />
+          <Route path="products/:id/kardex" element={<KardexPage />} />
 
           {/* Ventas */}
           <Route path="customers" element={<CustomerListPage />} />

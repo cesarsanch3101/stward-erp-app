@@ -69,11 +69,20 @@ const ProductListPage = () => {
     {
       field: 'actions',
       headerName: 'Acciones',
-      width: 120,
+      width: 200, // Aumenta el ancho
       sortable: false,
       renderCell: (params) => (
         <Box>
-          <IconButton onClick={() => handleEdit(params.row.id)} size="small" sx={{ mr: 1 }}>
+          {/* BOTÓN KARDEX NUEVO */}
+          <Button 
+             size="small" variant="outlined" 
+             onClick={() => navigate(`/products/${params.row.id}/kardex`)}
+             sx={{ mr: 1, fontSize: '0.7rem' }}
+           >
+             Kardex
+           </Button>
+          
+          <IconButton onClick={() => handleEdit(params.row.id)} size="small">
             <EditIcon fontSize="small" />
           </IconButton>
           <IconButton onClick={() => handleDelete(params.row.id)} size="small" color="error">

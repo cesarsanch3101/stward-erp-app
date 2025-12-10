@@ -4,7 +4,7 @@ class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
     
-    # Cuenta de Ingresos (4100 - Ventas)
+    # Cuenta 4100 (Ingresos - Ventas)
     income_account = models.ForeignKey(
         'accounting.Account', 
         on_delete=models.PROTECT, 
@@ -14,7 +14,7 @@ class Category(models.Model):
         verbose_name="Cuenta de Ingresos (Ventas)"
     )
     
-    # --- NUEVO: Cuenta de Activo (1435 - Inventario) ---
+    # --- NUEVO: Cuenta 1435 (Activo - Inventario) ---
     asset_account = models.ForeignKey(
         'accounting.Account', 
         on_delete=models.PROTECT, 
