@@ -1,30 +1,33 @@
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Supplier, PurchaseOrder, POItem
 from .serializers import SupplierSerializer, PurchaseOrderSerializer, POItemSerializer
+from .services import receive_purchase_order # Importamos el nuevo servicio
 
 class SupplierViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows suppliers to be viewed or edited.
-    """
     queryset = Supplier.objects.all()
     serializer_class = SupplierSerializer
 
 class PurchaseOrderViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows purchase orders to be viewed or edited.
-    It also handles the creation of associated POItems.
-    """
-    queryset = PurchaseOrder.objects.all().prefetch_related('items') # Optimize to fetch items too
+    queryset = PurchaseOrder.objects.all().prefetch_related('items__product__category')
     serializer_class = PurchaseOrderSerializer
 
     def perform_create(self, serializer):
-        # Automatically set the 'created_by' field to the current user
         serializer.save(created_by=self.request.user)
 
-    # We might add custom actions later to handle status changes (e.g., submit order)
-    # or receiving goods.
-
-# Note: We don't typically need a separate ViewSet for POItem, 
-# as items are usually managed *through* the PurchaseOrder. 
-# If we needed to update individual items later, we might create one.
+    # --- ACCIÓN: RECIBIR MERCADERÍA ---
+    @action(detail=True, methods=['post'], url_path='receive')
+    def receive(self, request, pk=None):
+        order = self.get_object()
+        try:
+            # Llamamos al servicio
+            entry = receive_purchase_order(order, request.user)
+            
+            return Response({
+                'status': 'success',
+                'message': f'Mercadería recibida. Stock actualizado y Asiento #{entry.id} generado.',
+                'journal_entry_id': entry.id
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)

@@ -71,3 +71,16 @@ export const deleteSupplier = async (id, token) => {
     throw new Error(errorDetail);
   }
 };
+// --- NUEVA FUNCION: Recibir Mercadería ---
+export const receivePurchaseOrder = async (id, token) => {
+  try {
+    const response = await apiClient.post(`/purchase-orders/${id}/receive/`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error receiving PO ${id}:`, error);
+    const errorMsg = error.response?.data?.detail || error.message || 'Error al recibir mercadería.';
+    throw new Error(errorMsg);
+  }
+};
