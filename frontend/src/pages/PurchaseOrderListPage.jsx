@@ -8,10 +8,13 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import InventoryIcon from '@mui/icons-material/Inventory'; // Icono recibir
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney'; // Icono pagar
 
+// Importamos servicios y componentes
 import { getPurchaseOrders, deletePurchaseOrder, receivePurchaseOrder } from '../api/purchasingService';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
+import PaymentModal from '../components/PaymentModal'; // ¡Importamos el Modal!
 
 const PurchaseOrderListPage = () => {
   const [orders, setOrders] = useState([]);
@@ -20,6 +23,10 @@ const PurchaseOrderListPage = () => {
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
   
+  // Estado para el Modal de Pago
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+
   const { tokens } = useAuth();
   const navigate = useNavigate();
 
@@ -40,6 +47,7 @@ const PurchaseOrderListPage = () => {
     fetchOrders();
   }, [tokens]);
 
+  // Manejadores de Acciones
   const handleDelete = async (id) => {
     if (!window.confirm("¿Seguro que deseas eliminar esta orden?")) return;
     try {
@@ -65,6 +73,12 @@ const PurchaseOrderListPage = () => {
     }
   };
 
+  // Abrir Modal de Pago
+  const handleOpenPayment = (order) => {
+    setSelectedOrder(order);
+    setPaymentModalOpen(true);
+  };
+
   const getStatusChip = (status) => {
     const colors = { 'Draft': 'warning', 'Completed': 'success', 'Cancelled': 'error' };
     return <Chip label={status} color={colors[status] || 'default'} size="small" />;
@@ -76,7 +90,10 @@ const PurchaseOrderListPage = () => {
         <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <ShoppingCartIcon fontSize="large" /> Órdenes de Compra
         </Typography>
-        <Button variant="contained" onClick={() => navigate('/purchase-orders/new')} startIcon={<AddIcon />}>
+        <Button 
+          variant="contained" color="primary" startIcon={<AddIcon />}
+          onClick={() => navigate('/purchase-orders/new')}
+        >
           Nueva Compra
         </Button>
       </Box>
@@ -106,6 +123,8 @@ const PurchaseOrderListPage = () => {
                 <TableCell align="right">${parseFloat(po.total_amount).toFixed(2)}</TableCell>
                 <TableCell align="center">{getStatusChip(po.status)}</TableCell>
                 <TableCell align="center">
+                  
+                  {/* ACCIONES PARA BORRADOR */}
                   {po.status === 'Draft' && (
                     <>
                     <Tooltip title="Recibir Mercadería">
@@ -120,6 +139,16 @@ const PurchaseOrderListPage = () => {
                     </Tooltip>
                     </>
                   )}
+
+                  {/* ACCIONES PARA COMPLETADO (RECIBIDO) */}
+                  {po.status === 'Completed' && (
+                    <Tooltip title="Registrar Pago">
+                      <IconButton color="primary" onClick={() => handleOpenPayment(po)}>
+                        <AttachMoneyIcon />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+
                 </TableCell>
               </TableRow>
             ))}
@@ -127,8 +156,20 @@ const PurchaseOrderListPage = () => {
         </Table>
       </TableContainer>
 
+      {/* Modal de Pago Integrado */}
+      <PaymentModal 
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        order={selectedOrder}
+        type="Expense" // Configurado como Egreso para Compras
+        onSuccess={() => {
+           setNotification({ open: true, message: 'Pago registrado con éxito', severity: 'success' });
+           // Opcional: Recargar órdenes si quisieras ver saldo pendiente (si implementáramos abonos parciales)
+        }}
+      />
+
       <Snackbar open={notification.open} autoHideDuration={6000} onClose={() => setNotification({...notification, open: false})}>
-        <Alert severity={notification.severity}>{notification.message}</Alert>
+        <Alert severity={notification.severity} sx={{ width: '100%' }}>{notification.message}</Alert>
       </Snackbar>
     </Box>
   );
