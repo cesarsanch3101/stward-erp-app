@@ -1,13 +1,11 @@
 import apiClient from './axios';
 
 // Función para obtener el reporte de Ganancias y Pérdidas
-export const getProfitAndLoss = async (token) => {
+// NOTA: Ya no recibe 'token' como argumento
+export const getProfitAndLoss = async () => {
   try {
-    const response = await apiClient.get('/reports/profit-and-loss/', {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+    // La cookie viaja sola gracias a withCredentials: true en axios.js
+    const response = await apiClient.get('/reports/profit-and-loss/');
     return response.data;
   } catch (error) {
     console.error("Error fetching P&L report:", error);

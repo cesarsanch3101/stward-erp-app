@@ -1,0 +1,116 @@
+import { createTheme } from '@mui/material/styles';
+
+// Paleta SAP Horizon (Aproximación)
+const sapColors = {
+  primary: '#0070F2', // SAP Blue
+  secondary: '#556B82', // Slate Grey
+  background: '#F5F6F7', // Shell Background
+  surface: '#FFFFFF',
+  error: '#D20A0A',
+  success: '#188918',
+  warning: '#E76500',
+  textPrimary: '#1D2D3E',
+  textSecondary: '#556B82',
+  border: '#E0E0E0'
+};
+
+const enterpriseTheme = createTheme({
+  palette: {
+    mode: 'light', // Enterprise apps suelen ser claras por defecto para legibilidad
+    primary: { main: sapColors.primary },
+    secondary: { main: sapColors.secondary },
+    background: { default: sapColors.background, paper: sapColors.surface },
+    error: { main: sapColors.error },
+    success: { main: sapColors.success },
+    warning: { main: sapColors.warning },
+    text: { primary: sapColors.textPrimary, secondary: sapColors.textSecondary },
+    divider: sapColors.border,
+  },
+  typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h1: { fontSize: '24px', fontWeight: 600, color: sapColors.textPrimary },
+    h2: { fontSize: '20px', fontWeight: 600, color: sapColors.textPrimary },
+    h3: { fontSize: '18px', fontWeight: 600, color: sapColors.textPrimary },
+    h4: { fontSize: '16px', fontWeight: 600, color: sapColors.textPrimary },
+    h5: { fontSize: '14px', fontWeight: 600, color: sapColors.textPrimary },
+    h6: { fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' },
+    body1: { fontSize: '14px', lineHeight: 1.5 }, // Standard body
+    body2: { fontSize: '13px', lineHeight: 1.4 }, // Dense lists
+    button: { textTransform: 'none', fontWeight: 600 }, // No mayúsculas forzadas
+  },
+  shape: {
+    borderRadius: 4, // Bordes sutiles, no redondos
+  },
+  components: {
+    // --- DENSIDAD EMPRESARIAL ---
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          height: '32px', // Altura compacta SAP/Odoo
+          fontSize: '13px',
+          boxShadow: 'none',
+          '&:hover': { boxShadow: 'none' },
+        },
+        contained: {
+          fontWeight: 600,
+        }
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          fontSize: '13px',
+          '& .MuiOutlinedInput-input': {
+            padding: '8px 12px', // Padding reducido (Small)
+            height: '1.4em',
+          },
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        root: {
+          fontSize: '13px',
+          transform: 'translate(14px, 9px) scale(1)', // Ajuste para input denso
+          '&.Mui-focused': { transform: 'translate(14px, -9px) scale(0.75)' },
+          '&.MuiFormLabel-filled': { transform: 'translate(14px, -9px) scale(0.75)' },
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          padding: '6px 16px', // Celdas de tabla compactas
+          fontSize: '13px',
+          borderBottom: `1px solid ${sapColors.border}`,
+        },
+        head: {
+          fontWeight: 600,
+          backgroundColor: '#F5F7FA',
+          color: sapColors.textSecondary,
+          height: '40px',
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          boxShadow: '0px 1px 3px rgba(0,0,0,0.05)', // Sombra muy sutil
+          border: `1px solid ${sapColors.border}`,
+        }
+      }
+    },
+    MuiPaper: {
+      defaultProps: {
+        elevation: 0, // Por defecto plano
+      },
+      styleOverrides: {
+        root: {
+          border: `1px solid ${sapColors.border}`,
+        }
+      }
+    }
+  },
+});
+
+export default enterpriseTheme;

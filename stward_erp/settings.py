@@ -1,47 +1,66 @@
 import os
 from pathlib import Path
-from datetime import timedelta 
+from datetime import timedelta
 from dotenv import load_dotenv
 
+# Cargar variables de entorno
 load_dotenv()
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# --- Secretos y Hosts ---
-SECRET_KEY = os.getenv('SECRET_KEY')
+# --- SEGURIDAD CRÍTICA ---
+# En producción, SECRET_KEY debe venir de .env
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-me-prod-key-stward-erp')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost,tesla.localhost').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.localhost').split(',')
 
-# --- Aplicaciones ---
+# --- APLICACIONES (ARQUITECTURA MULTI-TENANT) ---
+# SHARED_APPS: Tablas que viven en el esquema 'public' (Usuarios globales, Clientes SaaS)
 SHARED_APPS = [
-    'django_tenants',
-    'drf_spectacular',
-    'rest_framework',
-    'rest_framework_simplejwt',
-    'corsheaders',
+    'django_tenants',  # OBLIGATORIO: Debe ser la primera
+    'tenants',         # Gestión de inquilinos (Empresas/Dominios)
+    'users',           # Usuarios globales y autenticación
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.staticfiles',
-    'tenants',
-]
-TENANT_APPS = [
     'django.contrib.messages',
-    'users', # Esta es la app de la creacion de usuarios
-    'hr', # Esta es la app de recurso humano 
-    'inventory', # Esta es la app de inventario 
-    'purchasing', # Esta es la app de compras
-    'sales', # Esta es la app de ventas
-    'treasury', # Esta es la app de tesoreria 
-    'accounting', # Esta es la app de contabilidad
-    'reports', # Esta es la app para reportes
+    'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist', # Para logout seguro
+    'corsheaders',
+    'drf_spectacular', # Documentación API
 ]
-INSTALLED_APPS = list(SHARED_APPS) + list(TENANT_APPS)
 
-# --- Middleware ---
+# TENANT_APPS: Tablas que se crean en CADA esquema de cliente (tesla, cocacola, etc.)
+TENANT_APPS = [
+    'django.contrib.auth', # Necesario para permisos locales
+    'django.contrib.contenttypes',
+    'django.contrib.messages',
+    # --- APPS DE NEGOCIO STWARD ---
+    'hr',
+    'inventory',
+    'purchasing',
+    'sales',
+    'treasury',
+    'accounting',
+    'reports',
+]
+
+# INSTALLED_APPS final combina ambas listas
+INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
+
+# --- MIDDLEWARE ---
 MIDDLEWARE = [
-    'django_tenants.middleware.main.TenantMainMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
+    # 1. CORS PRIMERO: Para que responda a OPTIONS antes de buscar inquilinos
+    'corsheaders.middleware.CorsMiddleware', 
+    
+    # 2. Tenants Segundo: Ahora sí, resolvemos el esquema
+    'django_tenants.middleware.main.TenantMainMiddleware', 
+    
+    # 3. Resto de Middlewares estándar
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -50,8 +69,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
 ROOT_URLCONF = 'stward_erp.urls'
+
+# Configuración del modelo de Inquilinos
+TENANT_MODEL = "tenants.Company"
+TENANT_DOMAIN_MODEL = "tenants.Domain"
 
 TEMPLATES = [
     {
@@ -71,70 +93,84 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'stward_erp.wsgi.application'
 
-# --- Base de Datos ---
+# --- BASE DE DATOS (POSTGRESQL + DOCKER) ---
 DATABASES = {
     'default': {
         'ENGINE': 'django_tenants.postgresql_backend',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
+        'NAME': os.getenv('DB_NAME', 'stward_db'),
+        'USER': os.getenv('DB_USER', 'stward_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'stward_password'),
+        'HOST': os.getenv('DB_HOST', 'db'), # Nombre del servicio en docker-compose
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
+
+# Router de base de datos para separar inquilinos
 DATABASE_ROUTERS = ('django_tenants.routers.TenantSyncRouter',)
 
-# --- Validadores de Contraseña ---
+# --- VALIDACIÓN DE CONTRASEÑAS ---
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# --- Internacionalización ---
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+# --- LOCALIZACIÓN (CUMPLIMIENTO PANAMÁ) ---
+LANGUAGE_CODE = 'es-pa'
+TIME_ZONE = 'America/Panama'
 USE_I18N = True
 USE_TZ = True
 
-# --- Archivos Estáticos ---
+# --- ARCHIVOS ESTÁTICOS ---
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- CONFIGURACIÓN DE DJANGO-TENANTS ---
-TENANT_MODEL = "tenants.Company" 
-TENANT_DOMAIN_MODEL = "tenants.Domain"
-
-# --- CONFIGURACIÓN DE CORS ---
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://tesla.localhost:5173"
-]
-
-# --- CONFIGURACIÓN DE DRF Y SWAGGER ---
+# --- DRF & SEGURIDAD JWT ---
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DATETIME_FORMAT': "%d/%m/%Y %H:%M:%S",
+    'DATE_FORMAT': "%d/%m/%Y",
 }
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15), # Corta vida (seguridad)
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),    # Larga vida (conveniencia)
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    
+    # Configuración Cookies Seguras (HttpOnly)
+    'AUTH_COOKIE': 'refresh_token',
+    'AUTH_COOKIE_SECURE': not DEBUG, # True en Producción (HTTPS)
+    'AUTH_COOKIE_HTTP_ONLY': True,   # JavaScript no puede leerla (Anti-XSS)
+    'AUTH_COOKIE_PATH': '/',
+    'AUTH_COOKIE_SAMESITE': 'Lax',
+}
+
+# --- DOCUMENTACIÓN API ---
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Stward ERP API',
-    'DESCRIPTION': 'Documentación de la API para el proyecto Stward ERP',
+    'DESCRIPTION': 'API Empresarial Multi-Tenant (SaaS)',
     'VERSION': '1.0.0',
 }
 
-# --- ¡LA CONFIGURACIÓN DE JWT QUE FALTABA! ---
-SIMPLE_JWT = {
-    'SIGNING_KEY': SECRET_KEY, # Le dice a JWT qué llave usar
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60), # Aumentamos a 60 min
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
-}
+# --- CORS (FRONTEND ACCESS) ---
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://172.16.1.18:5173"
+    # En producción, agregar dominios reales
+]
+CORS_ALLOW_CREDENTIALS = True # Necesario para enviar cookies
+
+# --- CELERY & REDIS (TAREAS ASÍNCRONAS & IA) ---
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER", "redis://redis:6379/0")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_BACKEND", "redis://redis:6379/0")

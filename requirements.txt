@@ -10,15 +10,25 @@ django-tenants==3.5.0
 # PostgreSQL Driver
 psycopg2-binary
 
-# Environment Variables from .env file
+# Environment Variables
 python-dotenv
-#libreria para documentacion de la API
 
+# API Documentation
 drf-spectacular
-#libreria para autenticacion con JWT
+
+# Auth
 djangorestframework-simplejwt
-# Testing
+
+# Async & AI (NUEVO)
+celery
+redis
+tensorflow # O scikit-learn según necesidad inmediata
+numpy
+pytesseract # OCR
+pdf2image
+
+# Utils
+django-cors-headers
 pytest
 pytest-django
 pytest-cov
-django-cors-headers

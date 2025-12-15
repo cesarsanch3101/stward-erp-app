@@ -1,31 +1,41 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import apiClient from '../api/axios';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  // 1. CAMBIO: Al iniciar, intentamos leer los tokens desde la "caja fuerte" (localStorage)
-  const [tokens, setTokens] = useState(() => {
-    const storedTokens = localStorage.getItem('tokens');
-    return storedTokens ? JSON.parse(storedTokens) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // 2. CAMBIO: Al iniciar sesión, guardamos en el estado Y en la "caja fuerte"
-  const loginAction = (data) => {
-    setTokens(data);
-    localStorage.setItem('tokens', JSON.stringify(data));
+  // Al cargar la app
+  useEffect(() => {
+    // Aquí idealmente verificaríamos la sesión contra el backend (/users/me)
+    // Por ahora, asumimos que no hay usuario hasta que haga login explícito
+    setLoading(false);
+  }, []);
+
+  const loginAction = async (userData) => {
+    // Recibimos datos del usuario, NO tokens. La cookie ya se guardó sola.
+    setUser(userData); 
+    return true;
   };
 
-  // 3. CAMBIO: Al cerrar sesión, limpiamos el estado Y la "caja fuerte"
-  const logOut = () => {
-    setTokens(null);
-    localStorage.removeItem('tokens');
+  const logOut = async () => {
+    try {
+      await apiClient.post('/auth/logout/'); // El backend borrará la cookie
+    } catch (e) {
+      console.error("Error al cerrar sesión", e);
+    } finally {
+      setUser(null);
+    }
   };
 
-  // El 'value' que compartimos es el mismo
   const value = {
-    tokens,
+    user,
+    isAuthenticated: !!user, // Booleano simple
     loginAction,
     logOut,
+    loading
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -3,25 +3,18 @@ import ReactDOM from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
 
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from './context/AuthContext.jsx';
-
-// ¡Importamos el BrowserRouter!
 import { BrowserRouter } from 'react-router-dom';
-
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-});
+import enterpriseTheme from './theme/enterpriseTheme.js'; // Tema nuevo
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {/* Envolvemos todo con el Router */}
     <BrowserRouter>
       <AuthProvider>
-        <ThemeProvider theme={darkTheme}>
+        {/* Inyectamos el tema empresarial */}
+        <ThemeProvider theme={enterpriseTheme}>
           <CssBaseline />
           <App />
         </ThemeProvider>

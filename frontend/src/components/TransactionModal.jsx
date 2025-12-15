@@ -157,4 +157,4 @@ const TransactionModal = ({ open, onClose, type, order, token, onSuccess }) => {
   );
 };
 
-export default TransactionModal;
+export default TransactionModal;    

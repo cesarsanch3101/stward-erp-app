@@ -1,27 +1,74 @@
-
+version: '3.8'
 
 services:
   db:
     image: postgres:16
     container_name: stward_postgres
+    restart: always
     environment:
-      POSTGRES_USER: stward_user      # Coincide con .env
+      POSTGRES_USER: stward_user      # Debe coincidir con settings.py
       POSTGRES_PASSWORD: stward_password
       POSTGRES_DB: stward_db
     ports:
-      - "5433:5432"  # <--- CLAVE: Exponemos el 5432 interno en el 5433 de tu PC
+      - "5433:5432" # Puerto externo 5433 para no chocar con tu Postgres local
     volumes:
       - postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stward_user -d stward_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: stward_redis
+    ports:
+      - "6379:6379"
 
   web:
     build: .
-    # ... resto del archivo igual ...
+    container_name: stward_web
+    # El comando vital que faltaba para mantener el servidor vivo
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app  # Sincroniza tu código local con el contenedor
+    ports:
+      - "8000:8000"
     environment:
-      # ...
-      - DB_HOST=db  # El contenedor web sí usa el nombre interno 'db'
-      - DB_PORT=5432 # El contenedor web se conecta al puerto interno estándar
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=stward_db
+      - DB_USER=stward_user
+      - DB_PASSWORD=stward_password
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
+      # Variables de seguridad para desarrollo
+      - DEBUG=True
+      - SECRET_KEY=dev_secret_key_123
+      - ALLOWED_HOSTS=localhost,127.0.0.1,.localhost,web,172.16.1.18
+    depends_on:
+      db:
+        condition: service_healthy # Espera a que la BD esté lista real
+      redis:
+        condition: service_started
+
+  celery:
+    build: .
+    container_name: stward_celery
+    command: celery -A stward_erp worker -l info
+    volumes:
+      - .:/app
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=stward_db
+      - DB_USER=stward_user
+      - DB_PASSWORD=stward_password
+      - CELERY_BROKER=redis://redis:6379/0
+      - CELERY_BACKEND=redis://redis:6379/0
     depends_on:
       - db
+      - redis
 
 volumes:
   postgres_data:

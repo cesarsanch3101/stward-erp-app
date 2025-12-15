@@ -1,18 +1,27 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { Box, CircularProgress } from '@mui/material';
 
 const ProtectedRoute = () => {
-  // 1. Revisa la "cartera" para ver si tenemos un token
-  const { tokens } = useAuth();
+  // Ahora usamos 'isAuthenticated' y 'loading' del nuevo AuthContext
+  const { isAuthenticated, loading } = useAuth();
 
-  // 2. Comprueba si el usuario está autenticado
-  if (!tokens) {
-    // 3. Si no hay token, redirige al usuario a la página de login
-    return <Navigate to="/login" />;
+  // Esperamos a que la verificación de sesión termine
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
-  // 4. Si hay un token, permite el acceso a la ruta solicitada (Dashboard, Empleados, etc.)
+  // Si no está autenticado, al login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Si todo bien, mostramos la app
   return <Outlet />;
 };
 
