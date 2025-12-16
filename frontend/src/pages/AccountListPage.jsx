@@ -23,6 +23,7 @@ const AccountListPage = () => {
     try {
       setLoading(true);
       const data = await getAccounts();
+      // Ajuste de robustez por si la API devuelve paginación o lista directa
       setAccounts(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
       setError("Error cargando Plan de Cuentas.");
@@ -43,14 +44,22 @@ const AccountListPage = () => {
     { 
       field: 'parent', headerName: 'Padre', width: 120,
       valueGetter: (val) => {
+        // Busca el padre en la lista local para mostrar su código
         const parent = accounts.find(a => a.id === val);
         return parent ? parent.code : '-';
       }
     },
     {
-      field: 'actions', headerName: '', width: 80,
+      field: 'actions', headerName: 'Acciones', width: 100,
       renderCell: (params) => (
-        <IconButton size="small" onClick={(e) => {e.stopPropagation(); console.log(params.id)}}>
+        <IconButton 
+          size="small" 
+          color="primary"
+          onClick={(e) => {
+            e.stopPropagation(); 
+            navigate(`/accounts/edit/${params.row.id}`); // <-- AQUI ESTABA EL ERROR (antes solo era console.log)
+          }}
+        >
           <EditIcon fontSize="small" />
         </IconButton>
       )
@@ -70,7 +79,13 @@ const AccountListPage = () => {
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      <SmartTable rows={accounts} columns={columns} loading={loading} />
+      
+      <SmartTable 
+        rows={accounts} 
+        columns={columns} 
+        loading={loading}
+        onRowClick={(id) => navigate(`/accounts/edit/${id}`)} // También permite clic en la fila
+      />
     </Box>
   );
 };

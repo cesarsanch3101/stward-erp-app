@@ -1,33 +1,54 @@
 import apiClient from './axios';
 
 // --- PROVEEDORES ---
-export const getSuppliers = async (token) => {
-  const response = await apiClient.get('/suppliers/', { headers: { Authorization: `Bearer ${token}` } });
+
+// Obtener proveedores (Limpio)
+export const getSuppliers = async () => {
+  const response = await apiClient.get('/suppliers/');
   return response.data;
 };
 
-export const createSupplier = async (data, token) => {
+// Crear proveedor (Limpio)
+export const createSupplier = async (data) => {
   try {
-    const response = await apiClient.post('/suppliers/', data, { headers: { Authorization: `Bearer ${token}` } });
+    const response = await apiClient.post('/suppliers/', data);
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.detail || error.message);
   }
 };
 
-export const deleteSupplier = async (id, token) => {
-  await apiClient.delete(`/suppliers/${id}/`, { headers: { Authorization: `Bearer ${token}` } });
+// Eliminar proveedor (Limpio)
+export const deleteSupplier = async (id) => {
+  await apiClient.delete(`/suppliers/${id}/`);
 };
 
-// --- ÓRDENES DE COMPRA ---
-export const getPurchaseOrders = async (token) => {
-  const response = await apiClient.get('/purchase-orders/', { headers: { Authorization: `Bearer ${token}` } });
+// Obtener detalles de un proveedor (Para la edición futura)
+export const getSupplierDetails = async (id) => {
+  const response = await apiClient.get(`/suppliers/${id}/`);
   return response.data;
 };
 
-export const createPurchaseOrder = async (data, token) => {
+// Actualizar proveedor
+export const updateSupplier = async (id, data) => {
   try {
-    const response = await apiClient.post('/purchase-orders/', data, { headers: { Authorization: `Bearer ${token}` } });
+    const response = await apiClient.put(`/suppliers/${id}/`, data);
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.detail || error.message);
+  }
+};
+
+// --- ÓRDENES DE COMPRA ---
+
+export const getPurchaseOrders = async () => {
+  const response = await apiClient.get('/purchase-orders/');
+  return response.data;
+};
+
+export const createPurchaseOrder = async (data) => {
+  try {
+    const response = await apiClient.post('/purchase-orders/', data);
     return response.data;
   } catch (error) {
     const errorMsg = error.response?.data ? JSON.stringify(error.response.data) : error.message;
@@ -35,19 +56,17 @@ export const createPurchaseOrder = async (data, token) => {
   }
 };
 
-// NUEVO: Eliminar Orden
-export const deletePurchaseOrder = async (id, token) => {
+export const deletePurchaseOrder = async (id) => {
   try {
-    await apiClient.delete(`/purchase-orders/${id}/`, { headers: { Authorization: `Bearer ${token}` } });
+    await apiClient.delete(`/purchase-orders/${id}/`);
   } catch (error) {
     throw new Error(error.response?.data?.detail || "Error al eliminar orden.");
   }
 };
 
-// NUEVO: Recibir Orden
-export const receivePurchaseOrder = async (id, token) => {
+export const receivePurchaseOrder = async (id) => {
   try {
-    const response = await apiClient.post(`/purchase-orders/${id}/receive/`, {}, { headers: { Authorization: `Bearer ${token}` } });
+    const response = await apiClient.post(`/purchase-orders/${id}/receive/`, {});
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.detail || "Error al recibir mercadería.");

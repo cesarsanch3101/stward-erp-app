@@ -33,6 +33,7 @@ import PurchaseOrderFormPage from './pages/PurchaseOrderFormPage.jsx';
 import EmployeeEditPage from './pages/EmployeeEditPage.jsx';
 import CustomerEditPage from './pages/CustomerEditPage.jsx';
 import SalesOrderDetailPage from './pages/SalesOrderDetailPage.jsx';
+import AccountEditPage from './pages/AccountEditPage.jsx';
 
 // Componentes de Estructura
 import Layout from './components/Layout.jsx';
@@ -86,6 +87,7 @@ function App() {
           {/* Contabilidad */}
           <Route path="accounts" element={<AccountListPage />} />
           <Route path="accounts/new" element={<AccountFormPage />} />
+          <Route path="accounts/edit/:id" element={<AccountEditPage />} />
           <Route path="journal-entries" element={<JournalEntryListPage />} />
           <Route path="journal-entries/new" element={<JournalEntryFormPage />} />
 
