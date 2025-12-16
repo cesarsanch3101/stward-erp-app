@@ -6,15 +6,14 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import InventoryIcon from '@mui/icons-material/Inventory'; // Icono recibir
+import InventoryIcon from '@mui/icons-material/Inventory';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney'; // Icono pagar
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 
-// Importamos servicios y componentes
 import { getPurchaseOrders, deletePurchaseOrder, receivePurchaseOrder } from '../api/purchasingService';
-import { useAuth } from '../context/AuthContext.jsx';
+// Eliminamos useAuth
 import { useNavigate } from 'react-router-dom';
-import PaymentModal from '../components/PaymentModal'; // ¡Importamos el Modal!
+import PaymentModal from '../components/PaymentModal';
 
 const PurchaseOrderListPage = () => {
   const [orders, setOrders] = useState([]);
@@ -23,18 +22,16 @@ const PurchaseOrderListPage = () => {
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
   
-  // Estado para el Modal de Pago
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  const { tokens } = useAuth();
   const navigate = useNavigate();
 
+  // CORRECCIÓN: Eliminamos la dependencia de tokens
   const fetchOrders = async () => {
-    if (!tokens?.access) return;
     try {
       setLoading(true);
-      const data = await getPurchaseOrders(tokens.access);
+      const data = await getPurchaseOrders(); 
       setOrders(data || []);
     } catch (err) {
       setError('Error al cargar órdenes.');
@@ -45,13 +42,12 @@ const PurchaseOrderListPage = () => {
 
   useEffect(() => {
     fetchOrders();
-  }, [tokens]);
+  }, []);
 
-  // Manejadores de Acciones
   const handleDelete = async (id) => {
     if (!window.confirm("¿Seguro que deseas eliminar esta orden?")) return;
     try {
-      await deletePurchaseOrder(id, tokens.access);
+      await deletePurchaseOrder(id);
       setNotification({ open: true, message: 'Orden eliminada.', severity: 'success' });
       fetchOrders();
     } catch (err) {
@@ -63,7 +59,7 @@ const PurchaseOrderListPage = () => {
     if (!window.confirm("¿Confirmar recepción? Esto aumentará el stock y generará deuda.")) return;
     setActionLoading(true);
     try {
-      await receivePurchaseOrder(id, tokens.access);
+      await receivePurchaseOrder(id);
       setNotification({ open: true, message: '¡Mercadería recibida exitosamente!', severity: 'success' });
       fetchOrders();
     } catch (err) {
@@ -73,7 +69,6 @@ const PurchaseOrderListPage = () => {
     }
   };
 
-  // Abrir Modal de Pago
   const handleOpenPayment = (order) => {
     setSelectedOrder(order);
     setPaymentModalOpen(true);
@@ -90,10 +85,7 @@ const PurchaseOrderListPage = () => {
         <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <ShoppingCartIcon fontSize="large" /> Órdenes de Compra
         </Typography>
-        <Button 
-          variant="contained" color="primary" startIcon={<AddIcon />}
-          onClick={() => navigate('/purchase-orders/new')}
-        >
+        <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => navigate('/purchase-orders/new')}>
           Nueva Compra
         </Button>
       </Box>
@@ -123,8 +115,6 @@ const PurchaseOrderListPage = () => {
                 <TableCell align="right">${parseFloat(po.total_amount).toFixed(2)}</TableCell>
                 <TableCell align="center">{getStatusChip(po.status)}</TableCell>
                 <TableCell align="center">
-                  
-                  {/* ACCIONES PARA BORRADOR */}
                   {po.status === 'Draft' && (
                     <>
                     <Tooltip title="Recibir Mercadería">
@@ -139,8 +129,6 @@ const PurchaseOrderListPage = () => {
                     </Tooltip>
                     </>
                   )}
-
-                  {/* ACCIONES PARA COMPLETADO (RECIBIDO) */}
                   {po.status === 'Completed' && (
                     <Tooltip title="Registrar Pago">
                       <IconButton color="primary" onClick={() => handleOpenPayment(po)}>
@@ -148,7 +136,6 @@ const PurchaseOrderListPage = () => {
                       </IconButton>
                     </Tooltip>
                   )}
-
                 </TableCell>
               </TableRow>
             ))}
@@ -156,15 +143,13 @@ const PurchaseOrderListPage = () => {
         </Table>
       </TableContainer>
 
-      {/* Modal de Pago Integrado */}
       <PaymentModal 
         open={paymentModalOpen}
         onClose={() => setPaymentModalOpen(false)}
         order={selectedOrder}
-        type="Expense" // Configurado como Egreso para Compras
+        type="Expense"
         onSuccess={() => {
            setNotification({ open: true, message: 'Pago registrado con éxito', severity: 'success' });
-           // Opcional: Recargar órdenes si quisieras ver saldo pendiente (si implementáramos abonos parciales)
         }}
       />
 

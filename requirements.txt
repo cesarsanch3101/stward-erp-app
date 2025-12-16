@@ -24,6 +24,7 @@ celery
 redis
 tensorflow # O scikit-learn según necesidad inmediata
 numpy
+scikit-learn
 pytesseract # OCR
 pdf2image
 

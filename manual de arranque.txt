@@ -148,3 +148,66 @@ npm install
 npm run dev
 
 Usar: Entrar a http://tesla.localhost:5173
+
+
+📘 Manual de Arranque Definitivo: Stward ERP1. Prerrequisitos del SistemaAntes de tocar el código, asegúrate de tener instalado:Docker Desktop: (Debe estar corriendo).Node.js (v18+): Para el frontend.Git: Para clonar el repositorio.2. Configuración de Secretos (Backend)El error más común es olvidar las variables de entorno, lo que causa fallos de conexión a la base de datos o errores de DisallowedHost.Ve a la carpeta raíz del proyecto (donde está manage.py).Crea un archivo llamado .env.Copia y pega el siguiente contenido exacto. Nota: He incluido tesla.localhost en ALLOWED_HOSTS para evitar bloqueos del framework.Ini, TOML# --- ARCHIVO .env ---
+DEBUG=True
+SECRET_KEY=clave-secreta-desarrollo-stward-erp-123
+
+# ¡CRÍTICO! Estos dominios permiten que Django acepte la petición.
+# Si intentas acceder desde una IP o dominio no listado aquí, recibirás Error 400.
+ALLOWED_HOSTS=localhost,127.0.0.1,.localhost,web,172.16.1.18,tesla.localhost
+
+# Base de Datos (Conexión interna de Docker)
+DB_NAME=stward_db
+DB_USER=stward_user
+DB_PASSWORD=stward_password
+DB_HOST=db
+DB_PORT=5432
+
+# Redis & Celery (Para tareas asíncronas e IA)
+CELERY_BROKER=redis://redis:6379/0
+CELERY_BACKEND=redis://redis:6379/0
+3. Infraestructura y Base de Datos (Docker)Levantaremos los contenedores y configuraremos los esquemas de la base de datos PostgreSQL. Esta arquitectura usa esquemas separados, por lo que las migraciones tradicionales no bastan.Paso 3.1: Levantar ContenedoresEn la terminal (raíz del proyecto):Bash# Construye las imágenes y levanta los servicios en segundo plano
+docker-compose up --build -d
+
+# Verifica que 'stward_web', 'stward_db' y 'stward_redis' estén en estado 'Up'
+docker-compose ps
+Paso 3.2: Migraciones Multi-TenantDebemos crear las tablas tanto en el esquema public (compartido) como en los esquemas de inquilinos.Bash# 1. Crear archivos de migración pendientes (si los hubiera)
+docker-compose exec web python manage.py makemigrations
+
+# 2. Aplicar migraciones al esquema 'public' (Gestión de usuarios globales y tenants)
+docker-compose exec web python manage.py migrate_schemas --shared
+
+# 3. Aplicar migraciones a los esquemas de inquilinos (Tablas de negocio: ventas, inventario, etc.)
+docker-compose exec web python manage.py migrate_schemas --tenant
+[Fuente: manual de arranque.txt - Sección 3]4. Inicialización de Datos (Tenant & Admin)Si el sistema está limpio, no podrás loguearte. Necesitamos crear la empresa (Tenant) y el usuario administrador mediante un script.Ejecuta este comando en tu terminal para inyectar los datos semilla:Bashdocker-compose exec web python manage.py shell -c "
+from tenants.models import Company, Domain
+from django.contrib.auth.models import User
+from django_tenants.utils import schema_context
+
+# 1. Crear Tenant Público (Necesario para el enrutamiento base)
+if not Company.objects.filter(schema_name='public').exists():
+    public = Company(schema_name='public', name='Stward Public')
+    public.save()
+    Domain.objects.create(domain='localhost', tenant=public, is_primary=True)
+    print('✅ Tenant Public creado')
+
+# 2. Crear Tenant Demo 'Tesla' (Aquí vivirán los datos de prueba)
+if not Company.objects.filter(schema_name='tesla').exists():
+    tesla = Company(schema_name='tesla', name='Tesla Motors')
+    tesla.save()
+    # ¡IMPORTANTE! Este dominio debe coincidir con lo que pongas en el navegador
+    Domain.objects.create(domain='tesla.localhost', tenant=tesla, is_primary=True)
+    print('✅ Tenant Tesla creado')
+
+# 3. Crear Superusuario Admin Global
+# Lo creamos dentro del esquema público para que tenga acceso global
+with schema_context('public'):
+    if not User.objects.filter(username='admin').exists():
+        User.objects.create_superuser('admin', 'admin@stward.com', 'admin123')
+        print('✅ Usuario Admin creado: admin / admin123')
+"
+5. Arranque del Frontend (Vite)El frontend debe configurarse para permitir subdominios locales (como tesla.localhost).Abre una nueva terminal.Navega a la carpeta del frontend: cd frontend.Instala dependencias y corre el servidor:Bashnpm install
+npm run dev
+Nota técnica: La configuración de vite.config.js ya incluye allowedHosts: ['.localhost'] para permitir el acceso mediante subdominios locales.6. Prueba de Acceso y Credenciales (¡Crucial!)Aquí es donde ocurren el 90% de los errores "No funciona".❌ Forma INCORRECTA de acceder:http://localhost:5173 -> Error: Te llevará al esquema public, que no tiene las apps de negocio (Ventas, Inventario) instaladas. Verás errores 404 en las llamadas a la API de negocio.✅ Forma CORRECTA de acceder (Dominio Aceptado):Debes acceder usando el subdominio del inquilino que creamos (tesla).Abre tu navegador (Chrome/Edge/Firefox).Navega a: http://tesla.localhost:5173Login:Usuario: adminContraseña: admin123Si todo está correcto, entrarás al Dashboard y verás los datos aislados del esquema "tesla".7. Solución de Errores ComunesSíntomaCausa ProbableSoluciónError "Bad Request (400)"El dominio tesla.localhost no está en ALLOWED_HOSTS del backend.Revisa el archivo .env en la raíz y asegúrate de que incluya tesla.localhost. Reinicia docker (docker-compose restart).Login exitoso pero vuelve al loginLas cookies no se están guardando.Asegúrate de usar http:// y no https:// en local. El parámetro AUTH_COOKIE_SECURE en settings.py depende de DEBUG=True. Revisa que .env tenga DEBUG=True.Error de conexión a BDEl contenedor web intenta conectar a localhost en vez de db.Revisa .env. DB_HOST debe ser db (el nombre del servicio en docker-compose), no localhost.Error CORS en consolaEl frontend no tiene permiso para hablar con el back.Revisa settings.py. CORS_ALLOWED_ORIGINS debe incluir http://tesla.localhost:5173.

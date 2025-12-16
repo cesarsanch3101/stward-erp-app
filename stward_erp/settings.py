@@ -47,6 +47,7 @@ TENANT_APPS = [
     'treasury',
     'accounting',
     'reports',
+    # 'ai_core', # Descomentar cuando creemos la app separada, por ahora está en inventory
 ]
 
 # INSTALLED_APPS final combina ambas listas
@@ -176,3 +177,7 @@ CORS_ALLOW_CREDENTIALS = True # Necesario para enviar cookies
 # --- CELERY & REDIS (TAREAS ASÍNCRONAS & IA) ---
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_BACKEND", "redis://redis:6379/0")
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE

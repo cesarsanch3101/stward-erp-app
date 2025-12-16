@@ -1,31 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Box, TextField, Button, Typography, Container, Grid, Paper, Alert, CircularProgress } from '@mui/material';
-// Importamos los servicios de lectura (get) y actualización (update)
 import { getEmployee, updateEmployee } from '../api/employeeService';
-import { useAuth } from '../context/AuthContext.jsx';
-// Importamos useParams para leer el ID de la URL y useNavigate para salir al terminar
+// Eliminamos useAuth porque no necesitamos leer tokens manualmente
 import { useParams, useNavigate } from 'react-router-dom';
 
 const EmployeeEditPage = () => {
-  const { id } = useParams(); // Obtenemos el ID de la URL (ej: "1")
-  const { tokens } = useAuth();
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     first_name: '', last_name: '', email: '', phone_number: '', position: '', hire_date: '',
   });
-  const [loading, setLoading] = useState(true); // Cargando datos iniciales
-  const [saving, setSaving] = useState(false);  // Guardando cambios
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  // 1. Cargar los datos existentes al entrar
+  // CORRECCIÓN: Eliminamos la verificación de if (!tokens?.access)
   useEffect(() => {
     const fetchEmployee = async () => {
-      if (!tokens?.access) return;
       try {
         setLoading(true);
-        const data = await getEmployee(id, tokens.access);
-        setFormData(data); // ¡Rellenamos el formulario con los datos reales!
+        // El cliente axios envía la cookie automáticamente
+        const data = await getEmployee(id);
+        setFormData(data);
       } catch (err) {
         setError('Error al cargar los datos del empleado.');
       } finally {
@@ -33,22 +30,22 @@ const EmployeeEditPage = () => {
       }
     };
     fetchEmployee();
-  }, [id, tokens]);
+  }, [id]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // 2. Guardar los cambios
   const handleSubmit = async (event) => {
     event.preventDefault();
     setSaving(true);
     setError(null);
     try {
-      await updateEmployee(id, formData, tokens.access);
+      // CORRECCIÓN: No pasamos token, solo data
+      await updateEmployee(id, formData);
       console.log('Empleado actualizado');
-      navigate('/employees'); // Regresamos a la lista automáticamente
+      navigate('/employees');
     } catch (err) {
       setError('Error al guardar los cambios.');
     } finally {
@@ -66,7 +63,6 @@ const EmployeeEditPage = () => {
         </Typography>
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={2}>
-            {/* Los campos son idénticos al formulario de crear */}
             <Grid item xs={12} sm={6}>
               <TextField name="first_name" required fullWidth label="Nombre" value={formData.first_name} onChange={handleChange} />
             </Grid>
