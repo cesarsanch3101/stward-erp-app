@@ -36,7 +36,7 @@ SHARED_APPS = [
 
 # TENANT_APPS: Tablas que se crean en CADA esquema de cliente (tesla, cocacola, etc.)
 TENANT_APPS = [
-    'django.contrib.auth', # Necesario para permisos locales
+    #'django.contrib.auth',  Necesario para permisos locales
     'django.contrib.contenttypes',
     'django.contrib.messages',
     # --- APPS DE NEGOCIO STWARD ---
@@ -130,7 +130,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # Usamos NUESTRA clase personalizada primero
+        'users.authentication.CookieJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -140,19 +141,20 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15), # Corta vida (seguridad)
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),    # Larga vida (conveniencia)
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60), # Aumentamos tiempo para desarrollo
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'SIGNING_KEY': SECRET_KEY,
     'AUTH_HEADER_TYPES': ('Bearer',),
     
-    # Configuración Cookies Seguras (HttpOnly)
-    'AUTH_COOKIE': 'refresh_token',
-    'AUTH_COOKIE_SECURE': not DEBUG, # True en Producción (HTTPS)
-    'AUTH_COOKIE_HTTP_ONLY': True,   # JavaScript no puede leerla (Anti-XSS)
-    'AUTH_COOKIE_PATH': '/',
-    'AUTH_COOKIE_SAMESITE': 'Lax',
+    # --- CONFIGURACIÓN DE COOKIES ---
+    'AUTH_COOKIE': 'access_token',          # Nombre de la cookie de acceso
+    'AUTH_COOKIE_REFRESH': 'refresh_token', # Nombre de la cookie de refresco
+    'AUTH_COOKIE_SECURE': not DEBUG,        # False en dev (http), True en prod (https)
+    'AUTH_COOKIE_HTTP_ONLY': True,          # JavaScript no la ve (Seguridad)
+    'AUTH_COOKIE_PATH': '/',                # Disponible en todo el sitio
+    'AUTH_COOKIE_SAMESITE': 'Lax',          # Protección CSRF básica
 }
 
 # --- DOCUMENTACIÓN API ---
@@ -166,8 +168,8 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://172.16.1.18:5173"
-    # En producción, agregar dominios reales
+    "http://172.16.1.18:5173",
+    "http://tesla.localhost:5173", # <--- ¡AGREGADO!
 ]
 CORS_ALLOW_CREDENTIALS = True # Necesario para enviar cookies
 

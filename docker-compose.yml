@@ -45,7 +45,7 @@ services:
       # Variables de seguridad para desarrollo
       - DEBUG=True
       - SECRET_KEY=dev_secret_key_123
-      - ALLOWED_HOSTS=localhost,127.0.0.1,.localhost,web,172.16.1.18
+      - ALLOWED_HOSTS=localhost,127.0.0.1,.localhost,web,172.16.1.18,tesla.localhost
     depends_on:
       db:
         condition: service_healthy # Espera a que la BD esté lista real

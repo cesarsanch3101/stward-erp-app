@@ -9,25 +9,34 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """
-    Vista de Login Segura: Inyecta el refresh token en una Cookie HttpOnly.
+    Login Seguro: Guarda Access Token y Refresh Token en Cookies HttpOnly.
     """
     serializer_class = MyTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
-        # 1. Autenticación estándar
         response = super().post(request, *args, **kwargs)
         
         if response.status_code == 200:
-            # 2. Extraer token
+            access_token = response.data.get('access')
             refresh_token = response.data.get('refresh')
             
-            # 3. Quitarlo del JSON (para que JS no lo vea)
-            if 'refresh' in response.data:
-                del response.data['refresh']
+            # Limpiamos el JSON (Seguridad: Frontend no necesita ver los tokens)
+            if 'access' in response.data: del response.data['access']
+            if 'refresh' in response.data: del response.data['refresh']
             
-            # 4. Meterlo en la Cookie
+            # 1. Cookie de ACCESS TOKEN (Para peticiones rápidas)
             response.set_cookie(
-                key=settings.SIMPLE_JWT['AUTH_COOKIE'],
+                key=settings.SIMPLE_JWT['AUTH_COOKIE'], 
+                value=access_token,
+                expires=settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'],
+                secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+                httponly=settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+                samesite=settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']
+            )
+
+            # 2. Cookie de REFRESH TOKEN (Para mantener sesión viva)
+            response.set_cookie(
+                key=settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'], 
                 value=refresh_token,
                 expires=settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'],
                 secure=settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
@@ -42,8 +51,9 @@ class LogoutView(viewsets.ViewSet):
 
     def create(self, request):
         response = Response({"message": "Logout exitoso"}, status=status.HTTP_200_OK)
-        # Borrar cookie al salir
+        # Borrar ambas cookies
         response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE'])
+        response.delete_cookie(settings.SIMPLE_JWT['AUTH_COOKIE_REFRESH'])
         return response
 
 class UserViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):

@@ -1,0 +1,150 @@
+📘 Manual de Arranque (Actualizado para Equipo Nuevo)
+Si hoy le pasas este código a otro desarrollador (o lo clonas en otra PC), estos son los pasos exactos para que funcione con todas las modificaciones de seguridad y base de datos que hemos hecho.
+
+1. Configuración de Secretos
+En la raíz del proyecto, crea el archivo .env (que no se sube a git):
+
+Ini, TOML
+
+DEBUG=True
+SECRET_KEY=clave-secreta-desarrollo-123
+ALLOWED_HOSTS=localhost,127.0.0.1,.localhost,web,172.16.1.18
+
+# Base de Datos (Interna de Docker)
+DB_NAME=stward_db
+DB_USER=stward_user
+DB_PASSWORD=stward_password
+DB_HOST=db
+DB_PORT=5432
+
+# Redis & Celery
+CELERY_BROKER=redis://redis:6379/0
+CELERY_BACKEND=redis://redis:6379/0
+2. Levantar Infraestructura
+En la terminal raíz:
+
+Bash
+
+# 1. Construir y levantar (asegura que tome los cambios de Dockerfile)
+docker-compose up --build -d
+
+# 2. Verificar que db, redis y web estén "Up"
+docker-compose ps
+3. Aplicar Cambios de Base de Datos (Migraciones)
+OJO: Como agregamos campos nuevos a Sales y Purchasing en los pasos anteriores, esto es obligatorio.
+
+Bash
+
+# 1. Crear migraciones pendientes para Sales (RUC, DV, Impuestos)
+docker-compose exec web python manage.py makemigrations sales
+
+# 2. Crear migraciones para Purchasing (si hubiera cambios pendientes)
+docker-compose exec web python manage.py makemigrations purchasing
+
+# 3. Aplicar migraciones al esquema Público (Users, Clients)
+docker-compose exec web python manage.py migrate_schemas --shared
+
+# 4. Aplicar migraciones a los Inquilinos (Tesla, etc.)
+docker-compose exec web python manage.py migrate_schemas --tenant
+4. Inicializar Datos (Si es una instalación limpia)
+Si la base de datos es nueva, no tendrás ni empresa ni usuario. Ejecuta este script de una vez:
+
+Bash
+
+docker-compose exec web python manage.py shell -c "
+from tenants.models import Company, Domain
+from django.contrib.auth.models import User
+from django_tenants.utils import schema_context
+
+# 1. Crear Tenant Público
+if not Company.objects.filter(schema_name='public').exists():
+    public = Company(schema_name='public', name='Stward Public')
+    public.save()
+    Domain.objects.create(domain='localhost', tenant=public, is_primary=True)
+    print('✅ Tenant Public creado')
+
+# 2. Crear Tenant Demo (Tesla)
+if not Company.objects.filter(schema_name='tesla').exists():
+    tesla = Company(schema_name='tesla', name='Tesla Motors')
+    tesla.save()
+    # Asegúrate que este dominio coincida con tu allowedHosts de Vite
+    Domain.objects.create(domain='tesla.localhost', tenant=tesla, is_primary=True)
+    print('✅ Tenant Tesla creado')
+
+# 3. Crear Admin Global
+with schema_context('public'):
+    if not User.objects.filter(username='admin').exists():
+        User.objects.create_superuser('admin', 'admin@stward.com', 'admin123')
+        print('✅ Usuario Admin creado (Pass: admin123)')
+"
+5. Arrancar Frontend
+En otra terminal, dentro de la carpeta frontend:
+
+Bash
+
+npm install
+npm run dev
+Prueba de Fuego:
+
+Entra a http://localhost:5173.
+
+Login con admin / admin123.
+
+Ve a Ventas -> Crea un Cliente -> Crea una Orden.
+
+Si funciona sin errores rojos en consola, ¡estás listo para continuar
+
+
+
+Resumen: Pasos para Arrancar en Otro Equipo
+Tal como pediste, aquí tienes la Guía Definitiva de Despliegue para cuando lleves este código a otra máquina limpia. Guarda esto como LEER_ANTES_DE_ARRANCAR.txt.
+
+Instalar Prerrequisitos:
+
+Docker Desktop (corriendo).
+
+Node.js (v18+).
+
+Clonar el Proyecto:
+
+git clone <tu-repo>
+
+cd stward-erp-app
+
+Crear archivo de Secretos (.env):
+
+Crea un archivo .env en la raíz con:
+
+Ini, TOML
+
+DEBUG=True
+SECRET_KEY=dev-secret-123
+ALLOWED_HOSTS=localhost,127.0.0.1,.localhost,web,tesla.localhost
+DB_NAME=stward_db
+DB_USER=stward_user
+DB_PASSWORD=stward_password
+DB_HOST=db
+DB_PORT=5432
+CELERY_BROKER=redis://redis:6379/0
+CELERY_BACKEND=redis://redis:6379/0
+Levantar Backend (Docker):
+
+docker-compose up --build -d
+
+Esperar 1 min a que la base de datos inicie.
+
+Inicializar Base de Datos (Solo la primera vez):
+
+docker-compose exec web python manage.py migrate_schemas --shared
+
+(Ejecuta el script de Python de arriba para crear Tenants y Admin).
+
+Levantar Frontend:
+
+cd frontend
+
+npm install
+
+npm run dev
+
+Usar: Entrar a http://tesla.localhost:5173

@@ -1,90 +1,94 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box, Typography, Button, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, CircularProgress, Alert
-} from '@mui/material';
+import { Box, Typography, Button, Alert, Chip, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import EditIcon from '@mui/icons-material/Edit';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance'; // Icono Banco
+import SavingsIcon from '@mui/icons-material/Savings'; // Icono Dinero
+
+import SmartTable from '../components/SmartTable';
+import SmartButton from '../components/SmartButton';
 import { getBankAccounts } from '../api/treasuryService';
-import { useAuth } from '../context/AuthContext.jsx';
-import { useNavigate } from 'react-router-dom'; // Import activo
+import { useNavigate } from 'react-router-dom';
 
 const BankAccountListPage = () => {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { tokens } = useAuth();
-  const navigate = useNavigate(); // Hook activo
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchAccounts = async () => {
-      if (!tokens?.access) {
-        setError("Autenticación requerida."); setLoading(false); return;
-      }
-      try {
-        setLoading(true);
-        const data = await getBankAccounts(tokens.access);
-        setAccounts(data || []);
-      } catch (err) {
-        setError('Error al cargar las cuentas bancarias.'); console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAccounts();
-  }, [tokens]);
+  const fetchAccounts = async () => {
+    try {
+      setLoading(true);
+      const data = await getBankAccounts(); // Llamada segura sin token
+      setAccounts(data || []);
+    } catch (err) {
+      setError('Error cargando cuentas bancarias.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchAccounts(); }, []);
+
+  // Calcular saldo total
+  const totalBalance = accounts.reduce((acc, curr) => acc + parseFloat(curr.current_balance), 0);
+
+  const columns = [
+    { field: 'name', headerName: 'Nombre Cuenta', flex: 1, minWidth: 200, renderCell: (p) => <b>{p.value}</b> },
+    { field: 'bank_name', headerName: 'Banco', width: 150 },
+    { field: 'account_number', headerName: 'Número', width: 180 },
+    { 
+      field: 'current_balance', 
+      headerName: 'Saldo Actual', 
+      width: 150, 
+      align: 'right', 
+      headerAlign: 'right',
+      renderCell: (params) => (
+        <Chip 
+          label={`$${parseFloat(params.value).toFixed(2)}`} 
+          color={params.value >= 0 ? 'success' : 'error'} 
+          variant="outlined" 
+          size="small" 
+          sx={{ fontWeight: 'bold' }}
+        />
+      )
+    },
+    {
+      field: 'actions',
+      headerName: 'Acciones',
+      width: 100,
+      renderCell: (params) => (
+        <IconButton size="small" onClick={(e) => { e.stopPropagation(); console.log('Edit', params.row.id); }}>
+          <EditIcon fontSize="small" />
+        </IconButton>
+      )
+    }
+  ];
 
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AccountBalanceIcon fontSize="large" /> Cuentas Bancarias
-        </Typography>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/bank-accounts/new')} // ¡Activado!
-        >
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Typography variant="h5" fontWeight={600}>Tesorería</Typography>
+          <SmartButton 
+            icon={<SavingsIcon />} 
+            value={`$${totalBalance.toFixed(2)}`} 
+            label="Saldo Global" 
+            onClick={() => {}} 
+          />
+        </Box>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/bank-accounts/new')}>
           Nueva Cuenta
         </Button>
       </Box>
 
-      {loading && <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}><CircularProgress /></Box>}
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      {!loading && !error && (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Nombre de Cuenta</TableCell>
-                <TableCell>Banco</TableCell>
-                <TableCell>Número de Cuenta</TableCell>
-                <TableCell align="right">Saldo Inicial</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 'bold' }}>Saldo Actual</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {accounts.length === 0 ? (
-                <TableRow><TableCell colSpan={5} align="center">No hay cuentas registradas.</TableCell></TableRow>
-              ) : (
-                accounts.map((acc) => (
-                  <TableRow key={acc.id}>
-                    <TableCell>{acc.name}</TableCell>
-                    <TableCell>{acc.bank_name}</TableCell>
-                    <TableCell>{acc.account_number}</TableCell>
-                    <TableCell align="right">${parseFloat(acc.initial_balance).toFixed(2)}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                      ${parseFloat(acc.current_balance).toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+      <SmartTable
+        rows={accounts}
+        columns={columns}
+        loading={loading}
+      />
     </Box>
   );
 };
