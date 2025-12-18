@@ -6,22 +6,22 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductKardex } from '../api/inventoryService';
-import { useAuth } from '../context/AuthContext';
+// CORRECCIÓN: Eliminamos useAuth, no lo necesitamos para fetch
+// import { useAuth } from '../context/AuthContext'; 
 
 const KardexPage = () => {
   const { id } = useParams();
-  const { tokens } = useAuth();
   const navigate = useNavigate();
   const [movements, setMovements] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (tokens?.access) {
-      getProductKardex(id, tokens.access)
-        .then(data => setMovements(data))
-        .finally(() => setLoading(false));
-    }
-  }, [id, tokens]);
+    // CORRECCIÓN: Llamada directa, el interceptor de Axios maneja la cookie
+    getProductKardex(id)
+      .then(data => setMovements(data))
+      .catch(err => console.error("Error cargando kardex", err))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   return (
     <Box>

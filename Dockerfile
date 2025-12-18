@@ -8,10 +8,17 @@ ENV PYTHONUNBUFFERED 1
 # Establecer el directorio de trabajo dentro de la caja (contenedor)
 WORKDIR /app
 
-# Copiar la lista de requisitos
-COPY requirements.txt .
+# Instalar dependencias del sistema para PostgreSQL y OCR (Tesseract/Poppler)
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    gcc \
+    tesseract-ocr \
+    tesseract-ocr-spa \
+    poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 
-# Instalar los requisitos
+# Copiar la lista de requisitos e instalarlos
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar todo el código del proyecto a la caja

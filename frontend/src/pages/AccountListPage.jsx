@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Button, Alert, Chip, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
@@ -14,25 +14,35 @@ const ACCOUNT_TYPE_COLORS = {
 };
 
 const AccountListPage = () => {
-  const [accounts, setAccounts] = useState([]);
+  const navigate = useNavigate();
+  const [rows, setRows] = useState([]);
+  const [rowCount, setRowCount] = useState(0);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 50 }); // Más denso para cuentas
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await getAccounts();
-      // Ajuste de robustez por si la API devuelve paginación o lista directa
-      setAccounts(Array.isArray(data) ? data : data.results || []);
+      const page = paginationModel.page + 1;
+      const data = await getAccounts(page, paginationModel.pageSize);
+      
+      if (data.results) {
+        setRows(data.results);
+        setRowCount(data.count);
+      } else {
+        setRows(data);
+        setRowCount(data.length || 0);
+      }
     } catch (err) {
+      console.error(err);
       setError("Error cargando Plan de Cuentas.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [paginationModel]);
 
-  useEffect(() => { fetchAccounts(); }, []);
+  useEffect(() => { fetchAccounts(); }, [fetchAccounts]);
 
   const columns = [
     { field: 'code', headerName: 'Código', width: 130, renderCell: (p) => <b>{p.value}</b> },
@@ -42,24 +52,13 @@ const AccountListPage = () => {
       renderCell: (p) => <Chip label={p.value} color={ACCOUNT_TYPE_COLORS[p.value] || 'default'} size="small" variant="outlined" />
     },
     { 
-      field: 'parent', headerName: 'Padre', width: 120,
-      valueGetter: (val) => {
-        // Busca el padre en la lista local para mostrar su código
-        const parent = accounts.find(a => a.id === val);
-        return parent ? parent.code : '-';
-      }
+      field: 'parent', headerName: 'Padre', width: 100,
+      valueGetter: (val, row) => row.parent ? row.parent : '-' // Simplificado, idealmente backend manda code
     },
     {
       field: 'actions', headerName: 'Acciones', width: 100,
       renderCell: (params) => (
-        <IconButton 
-          size="small" 
-          color="primary"
-          onClick={(e) => {
-            e.stopPropagation(); 
-            navigate(`/accounts/edit/${params.row.id}`); // <-- AQUI ESTABA EL ERROR (antes solo era console.log)
-          }}
-        >
+        <IconButton size="small" color="primary" onClick={(e) => { e.stopPropagation(); navigate(`/accounts/edit/${params.row.id}`); }}>
           <EditIcon fontSize="small" />
         </IconButton>
       )
@@ -71,7 +70,7 @@ const AccountListPage = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Typography variant="h5" fontWeight={600}>Contabilidad</Typography>
-          <SmartButton icon={<AccountTreeIcon />} value={accounts.length} label="Cuentas" onClick={() => {}} />
+          <SmartButton icon={<AccountTreeIcon />} value={rowCount} label="Cuentas" onClick={() => {}} />
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/accounts/new')}>
           Nueva Cuenta
@@ -81,10 +80,13 @@ const AccountListPage = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       
       <SmartTable 
-        rows={accounts} 
+        rows={rows} 
         columns={columns} 
+        rowCount={rowCount}
         loading={loading}
-        onRowClick={(id) => navigate(`/accounts/edit/${id}`)} // También permite clic en la fila
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={(id) => navigate(`/accounts/edit/${id}`)}
       />
     </Box>
   );

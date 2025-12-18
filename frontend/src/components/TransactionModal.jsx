@@ -6,10 +6,8 @@ import {
 } from '@mui/material';
 import { getBankAccounts, getCashRegisters, createTreasuryMovement } from '../api/treasuryService';
 
-const TransactionModal = ({ open, onClose, type, order, token, onSuccess }) => {
-  // type: 'Income' (Cobro Ventas) o 'Expense' (Pago Compras)
-  // order: Objeto con datos de la orden (id, total, cliente/proveedor)
-
+// CORRECCIÓN: Eliminamos 'token' de las props
+const TransactionModal = ({ open, onClose, type, order, onSuccess }) => {
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [banks, setBanks] = useState([]);
   const [cashes, setCashes] = useState([]);
@@ -19,24 +17,23 @@ const TransactionModal = ({ open, onClose, type, order, token, onSuccess }) => {
   const [formData, setFormData] = useState({
     amount: '',
     description: '',
-    targetType: 'Bank', // 'Bank' o 'Cash'
+    targetType: 'Bank',
     targetId: ''
   });
 
-  // Cargar opciones al abrir
   useEffect(() => {
     if (open) {
       const loadData = async () => {
         setLoadingOptions(true);
         try {
+          // CORRECCIÓN: Llamadas limpias sin token
           const [b, c] = await Promise.all([
-            getBankAccounts(token),
-            getCashRegisters(token)
+            getBankAccounts(),
+            getCashRegisters()
           ]);
           setBanks(b || []);
           setCashes(c || []);
           
-          // Pre-llenar datos
           setFormData(prev => ({
             ...prev,
             amount: order?.total_amount || '',
@@ -46,6 +43,7 @@ const TransactionModal = ({ open, onClose, type, order, token, onSuccess }) => {
           }));
 
         } catch (err) {
+          console.error(err);
           setError("Error cargando cuentas de tesorería.");
         } finally {
           setLoadingOptions(false);
@@ -53,7 +51,7 @@ const TransactionModal = ({ open, onClose, type, order, token, onSuccess }) => {
       };
       loadData();
     }
-  }, [open, order, token, type]);
+  }, [open, order, type]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -64,32 +62,29 @@ const TransactionModal = ({ open, onClose, type, order, token, onSuccess }) => {
     setError(null);
 
     try {
-      // Construir payload según sea Ingreso o Egreso
       const payload = {
         movement_type: type,
         amount: formData.amount,
         description: formData.description,
-        // Referencias a cliente/proveedor
         customer: type === 'Income' ? order.customer : null,
         supplier: type === 'Expense' ? order.supplier : null,
       };
 
-      // Asignar cuenta de origen/destino según selección
       if (type === 'Income') {
-        // Dinero entra A...
         if (formData.targetType === 'Bank') payload.to_bank_account = formData.targetId;
         else payload.to_cash_register = formData.targetId;
       } else {
-        // Dinero sale DE...
         if (formData.targetType === 'Bank') payload.from_bank_account = formData.targetId;
         else payload.from_cash_register = formData.targetId;
       }
 
-      await createTreasuryMovement(payload, token);
-      onSuccess(); // Notificar al padre y cerrar
+      // CORRECCIÓN: Llamada sin token
+      await createTreasuryMovement(payload);
+      onSuccess();
       onClose();
     } catch (err) {
-      setError(err.message);
+      console.error(err);
+      setError(err.message || 'Error al guardar');
     } finally {
       setSaving(false);
     }
@@ -157,4 +152,4 @@ const TransactionModal = ({ open, onClose, type, order, token, onSuccess }) => {
   );
 };
 
-export default TransactionModal;    
+export default TransactionModal;

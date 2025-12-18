@@ -1,31 +1,48 @@
 from rest_framework import serializers
 from .models import Customer, SalesOrder, SOItem
-from inventory.serializers import ProductSerializer 
+# No necesitamos ProductSerializer aquí si no lo usamos explícitamente, 
+# pero lo dejamos por si acaso.
 
 class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
-        fields = ['id', 'name', 'contact_person', 'email', 'phone_number', 'address']
+        fields = [
+            'id', 
+            'name', 
+            'ruc', 
+            'dv', 
+            'taxpayer_type', 
+            'contact_person', 
+            'email', 
+            'phone_number', 
+            'address'
+        ]
 
 class SOItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
-    total_price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    
+    # --- CORRECCIÓN 1: Mapeo para el Frontend ---
+    # Le decimos a Django: "Cuando el frontend pida 'total_price', 
+    # dale el valor de 'total_line' del modelo".
+    total_price = serializers.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        read_only=True, 
+        source='total_line'  # <--- CLAVE: Apunta a la propiedad real del modelo
+    )
 
     class Meta:
         model = SOItem
         fields = [
             'id', 
-            # 'sales_order', # Se maneja automáticamente por el serializer padre
-            'product', # ID para escribir
-            'product_name', # Nombre para leer
+            'product', 
+            'product_name', 
             'quantity', 
             'unit_price',
             'total_price'
         ]
-        # Ya no necesitamos 'extra_kwargs' aquí, 'product' es un campo de escritura normal
 
 class SalesOrderSerializer(serializers.ModelSerializer):
-    # ¡CAMBIO CLAVE! 'items' ahora es de escritura/lectura.
     items = SOItemSerializer(many=True) 
 
     customer_name = serializers.CharField(source='customer.name', read_only=True)
@@ -43,28 +60,24 @@ class SalesOrderSerializer(serializers.ModelSerializer):
             'created_by', 
             'created_by_username', 
             'total_amount',
-            'items' # La lista anidada de items
+            'items' 
         ]
         read_only_fields = ['order_date', 'total_amount', 'created_by']
 
-    # --- ¡NUEVO MÉTODO! ---
     def create(self, validated_data):
-        # 1. Extraer los datos de los items anidados
         items_data = validated_data.pop('items')
-
-        # 2. Crear la Orden de Venta (la cabecera)
-        # El 'created_by' se añadirá en el ViewSet (paso que ya hicimos)
         sales_order = SalesOrder.objects.create(**validated_data)
-
+        
         total_order_amount = 0
 
-        # 3. Crear cada Item de la Orden y calcular el total
         for item_data in items_data:
             item = SOItem.objects.create(sales_order=sales_order, **item_data)
-            # Usamos la propiedad .total_price que ya calcula (cantidad * precio)
-            total_order_amount += item.total_price 
+            
+            # --- CORRECCIÓN 2: Cálculo Interno ---
+            # Aquí usamos el nombre REAL de la propiedad en el modelo (models.py)
+            # El error ocurría porque aquí decía 'item.total_price'
+            total_order_amount += item.total_line 
 
-        # 4. Actualizar el total de la orden y guardarla
         sales_order.total_amount = total_order_amount
         sales_order.save()
 

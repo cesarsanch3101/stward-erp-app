@@ -1,100 +1,131 @@
-import React from 'react';
-import { DataGrid, GridToolbar } from '@mui/x-data-grid';
-import { Box, Paper, LinearProgress } from '@mui/material';
+import React, { useState } from 'react';
+import { 
+  DataGrid, 
+  GridToolbarContainer, 
+  GridToolbarColumnsButton, 
+  GridToolbarFilterButton, 
+  GridToolbarExport, 
+  GridToolbarQuickFilter 
+} from '@mui/x-data-grid';
+import { Box, Paper, LinearProgress, Button, Menu, MenuItem, Typography, Divider } from '@mui/material';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 
-// Configuración en español para la DataGrid
-const spanishLocale = {
-  noRowsLabel: 'Sin datos',
-  noResultsOverlayLabel: 'No se encontraron resultados.',
-  toolbarDensity: 'Densidad',
-  toolbarDensityLabel: 'Densidad',
-  toolbarDensityCompact: 'Compacta',
-  toolbarDensityStandard: 'Estándar',
-  toolbarDensityComfortable: 'Cómoda',
-  toolbarColumns: 'Columnas',
-  toolbarColumnsLabel: 'Seleccionar columnas',
-  toolbarFilters: 'Filtros',
-  toolbarFiltersLabel: 'Mostrar filtros',
-  toolbarExport: 'Exportar',
-  toolbarExportLabel: 'Exportar',
-  toolbarExportCSV: 'Descargar como CSV',
-  toolbarExportPrint: 'Imprimir',
-  columnsPanelTextFieldLabel: 'Buscar columna',
-  columnsPanelTextFieldPlaceholder: 'Título de columna',
-  filterPanelColumns: 'Columna',
-  filterPanelOperators: 'Operador',
-  filterPanelInputLabel: 'Valor',
-  filterPanelInputPlaceholder: 'Filtrar valor',
-  filterOperatorContains: 'contiene',
-  filterOperatorEquals: 'es igual',
-  filterOperatorStartsWith: 'empieza con',
-  filterOperatorEndsWith: 'termina con',
-  columnMenuLabel: 'Menú',
-  columnMenuShowColumns: 'Mostrar columnas',
-  columnMenuFilter: 'Filtrar',
-  columnMenuHideColumn: 'Ocultar',
-  columnMenuUnsort: 'Desordenar',
-  columnMenuSortAsc: 'Ordenar ASC',
-  columnMenuSortDesc: 'Ordenar DESC',
+// Toolbar Personalizada Estilo Odoo/SAP
+const EnterpriseToolbar = ({ onViewChange }) => {
+  const [anchorEl, setAnchorEl] = useState(null);
+  
+  const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
+  const handleMenuClose = (view) => {
+    setAnchorEl(null);
+    if (view) onViewChange(view);
+  };
+
+  return (
+    <GridToolbarContainer sx={{ p: 1, borderBottom: '1px solid #e0e0e0', bgcolor: '#fafafa' }}>
+      <Box sx={{ display: 'flex', gap: 1, flexGrow: 1 }}>
+        <GridToolbarColumnsButton />
+        <GridToolbarFilterButton />
+        <GridToolbarExport />
+        
+        {/* Botón de Vistas/Variantes */}
+        <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
+        <Button 
+          size="small" 
+          startIcon={<ViewListIcon />} 
+          endIcon={<KeyboardArrowDownIcon />}
+          onClick={handleMenuClick}
+          sx={{ color: 'text.secondary' }}
+        >
+          Vistas
+        </Button>
+        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => handleMenuClose()}>
+          <MenuItem onClick={() => handleMenuClose('all')}>
+            <Typography variant="body2">Todo (Predeterminado)</Typography>
+          </MenuItem>
+          <MenuItem onClick={() => handleMenuClose('active')}>
+            <Typography variant="body2">Solo Activos</Typography>
+          </MenuItem>
+          <MenuItem onClick={() => handleMenuClose('my_records')}>
+            <Typography variant="body2">Mis Registros</Typography>
+          </MenuItem>
+        </Menu>
+      </Box>
+      <GridToolbarQuickFilter variant="outlined" size="small" sx={{ width: 250 }} />
+    </GridToolbarContainer>
+  );
 };
 
 const SmartTable = ({ 
-  rows, 
+  rows = [], 
   columns, 
   loading, 
-  onRowClick 
+  onRowClick,
+  // Props de Servidor
+  rowCount = 0,
+  paginationModel = { page: 0, pageSize: 25 },
+  onPaginationModelChange,
+  onFilterChange,
+  checkboxSelection = true // Default Enterprise
 }) => {
+  
   return (
-    <Paper sx={{ height: 600, width: '100%', overflow: 'hidden' }}>
+    <Paper sx={{ height: 650, width: '100%', overflow: 'hidden', border: '1px solid #e0e0e0', borderRadius: 1 }}>
       <DataGrid
-        rows={rows || []}
+        // Datos
+        rows={rows}
         columns={columns}
+        rowCount={rowCount}
         loading={loading}
-        density="compact" // OBLIGATORIO: Estilo "Enterprise Dense"
         
-        // Slots para personalizar
+        // Modos de Servidor
+        paginationMode="server"
+        filterMode="server"
+        
+        // Paginación Controlada
+        paginationModel={paginationModel}
+        onPaginationModelChange={onPaginationModelChange}
+        pageSizeOptions={[25, 50, 100]}
+        
+        // Configuración Visual
+        density="compact"
+        checkboxSelection={checkboxSelection}
+        disableRowSelectionOnClick
+        
+        // Slots
         slots={{
           loadingOverlay: LinearProgress,
-          toolbar: GridToolbar, // Barra de búsqueda y filtros nativa
+          toolbar: EnterpriseToolbar,
         }}
-
-        // Props de la Toolbar
+        
         slotProps={{
           toolbar: {
-            showQuickFilter: true, // Buscador rápido
-            quickFilterProps: { debounceMs: 500 },
-          },
+            onViewChange: (view) => onFilterChange && onFilterChange({ view }),
+          }
         }}
 
-        // Paginación (Por ahora cliente, fase 4 cambiamos a servidor)
-        initialState={{
-          pagination: { paginationModel: { pageSize: 25 } },
-        }}
-        pageSizeOptions={[25, 50, 100]}
-
-        // Estilos visuales
+        // Estilos
         sx={{
           border: 'none',
+          '& .MuiDataGrid-columnHeaders': {
+            backgroundColor: '#F5F6F7', // Color Shell SAP
+            color: '#1D2D3E',
+            fontWeight: 700,
+            fontSize: '12px',
+            textTransform: 'uppercase',
+            borderBottom: '1px solid #e0e0e0'
+          },
           '& .MuiDataGrid-cell': {
             borderBottom: '1px solid #f0f0f0',
-          },
-          '& .MuiDataGrid-columnHeaders': {
-            backgroundColor: '#F5F7FA', // Cabecera gris suave
-            color: '#556B82',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            fontSize: '11px',
+            fontSize: '13px'
           },
           '& .MuiDataGrid-row:hover': {
-            backgroundColor: '#F5F9FF', // Hover azul muy suave
+            backgroundColor: '#F0F7FF', // Azul muy suave al hover
             cursor: onRowClick ? 'pointer' : 'default',
-          },
+          }
         }}
 
-        // Eventos
         onRowClick={onRowClick ? (params) => onRowClick(params.row.id) : undefined}
-        disableRowSelectionOnClick
-        localeText={spanishLocale}
       />
     </Paper>
   );

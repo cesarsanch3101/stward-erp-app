@@ -1,15 +1,20 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.parsers import MultiPartParser, FormParser
+# CORRECCIÓN: Importamos JSONParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from .models import Supplier, PurchaseOrder, POItem
 from .serializers import SupplierSerializer, PurchaseOrderSerializer, POItemSerializer
 from .services import receive_purchase_order 
+import re
+from datetime import datetime
 
-# Importaciones para OCR (Simulado si no hay librerías)
+# Importaciones para OCR
 try:
     import pytesseract
     from pdf2image import convert_from_bytes
+    from PIL import Image
+    import io
     OCR_AVAILABLE = True
 except ImportError:
     OCR_AVAILABLE = False
@@ -19,63 +24,66 @@ class SupplierViewSet(viewsets.ModelViewSet):
     serializer_class = SupplierSerializer
 
 class PurchaseOrderViewSet(viewsets.ModelViewSet):
-    queryset = PurchaseOrder.objects.all().select_related('supplier').prefetch_related('items__product__category')
+    queryset = PurchaseOrder.objects.all().select_related('supplier')
     serializer_class = PurchaseOrderSerializer
-    parser_classes = (MultiPartParser, FormParser) # Permitir subida de archivos
+    # CORRECCIÓN CRÍTICA: Agregamos JSONParser al inicio
+    # Esto permite que la API acepte tanto JSON (crear orden) como Archivos (subir factura)
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
-
-    def destroy(self, request, *args, **kwargs):
-        order = self.get_object()
-        if order.status != 'Draft':
-            return Response(
-                {'detail': 'No se puede eliminar una orden procesada.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        return super().destroy(request, *args, **kwargs)
 
     @action(detail=True, methods=['post'], url_path='receive')
     def receive(self, request, pk=None):
         order = self.get_object()
         try:
             entry = receive_purchase_order(order, request.user)
-            return Response({
-                'status': 'success',
-                'message': f'Recepción exitosa. Asiento #{entry.id} creado.',
-                'new_status': order.status
-            }, status=status.HTTP_200_OK)
+            return Response({'status': 'success', 'message': f'Recepción exitosa. Asiento #{entry.id}.'}, status=200)
         except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': str(e)}, status=400)
 
-    # --- NUEVO: ENDPOINT OCR ---
     @action(detail=False, methods=['post'], url_path='upload-invoice')
     def upload_invoice(self, request):
         """
-        Recibe un PDF/Imagen, extrae texto y sugiere una Orden de Compra.
+        Procesa PDF/Imagen -> Texto -> JSON Estructurado
         """
         if 'file' not in request.data:
-            return Response({'detail': 'No se envió ningún archivo.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'Archivo no proporcionado.'}, status=400)
 
-        file_obj = request.data['file']
+        uploaded_file = request.data['file']
         
-        # Validación de IA
         if not OCR_AVAILABLE:
-            return Response({'detail': 'Motor OCR no instalado en el servidor.'}, status=status.HTTP_501_NOT_IMPLEMENTED)
+            return Response({'detail': 'Librerías OCR no instaladas.'}, status=501)
 
-        # Simulación de extracción (En producción usarías una tarea de Celery aquí)
-        # text = pytesseract.image_to_string(image)
-        
-        # Respuesta simulada de la IA
-        extracted_data = {
-            'detected_supplier': 'Proveedor Detectado S.A.',
-            'detected_date': '2025-12-15',
-            'detected_total': 1500.00,
-            'confidence': 0.92,
-            'items_found': [
-                {'description': 'Servicio de Hosting', 'amount': 1000},
-                {'description': 'Mantenimiento', 'amount': 500}
-            ]
-        }
+        try:
+            text = ""
+            # 1. Procesamiento de Imagen/PDF
+            if uploaded_file.name.endswith('.pdf'):
+                images = convert_from_bytes(uploaded_file.read())
+                for img in images:
+                    text += pytesseract.image_to_string(img) + "\n"
+            else:
+                image = Image.open(uploaded_file)
+                text = pytesseract.image_to_string(image)
 
-        return Response(extracted_data, status=status.HTTP_200_OK)
+            # 2. Extracción con RegEx (Heurística simple)
+            date_match = re.search(r'(\d{2}/\d{2}/\d{4})|(\d{4}-\d{2}-\d{2})', text)
+            detected_date = date_match.group(0) if date_match else datetime.now().strftime('%Y-%m-%d')
+
+            prices = re.findall(r'\$?\s?(\d{1,3}(?:,\d{3})*\.\d{2})', text)
+            detected_total = 0.0
+            if prices:
+                clean_prices = [float(p.replace(',', '')) for p in prices]
+                detected_total = max(clean_prices)
+
+            detected_supplier = "Proveedor Desconocido"
+            
+            return Response({
+                'detected_date': detected_date,
+                'detected_total': detected_total,
+                'detected_supplier': detected_supplier,
+                'confidence': 0.85
+            })
+
+        except Exception as e:
+            return Response({'detail': f'Error procesando OCR: {str(e)}'}, status=500)

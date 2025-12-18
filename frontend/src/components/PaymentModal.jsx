@@ -4,8 +4,7 @@ import {
   Button, TextField, FormControl, InputLabel, Select, MenuItem,
   Alert, Box, Typography, Divider, CircularProgress
 } from '@mui/material';
-import { getBankAccounts } from '../api/treasuryService';
-import { createTreasuryMovement } from '../api/treasuryService';
+import { getBankAccounts, createTreasuryMovement } from '../api/treasuryService';
 
 const PaymentModal = ({ open, onClose, order, type = 'Expense', onSuccess }) => {
   const [banks, setBanks] = useState([]);
@@ -18,27 +17,24 @@ const PaymentModal = ({ open, onClose, order, type = 'Expense', onSuccess }) => 
   });
   const [error, setError] = useState(null);
 
-  // Cargar cuentas bancarias al abrir el modal
   useEffect(() => {
     if (open) {
       const loadData = async () => {
         setLoadingBanks(true);
         try {
-          const token = JSON.parse(localStorage.getItem('tokens'))?.access;
-          const data = await getBankAccounts(token);
+          // CORRECCIÓN: Llamada sin argumentos (token)
+          const data = await getBankAccounts();
           setBanks(data || []);
           
-          // Pre-llenar datos basados en la orden seleccionada
           if (order) {
             setFormData({
               bank_account: '',
-              // Sugerimos el monto total pendiente (en un sistema real, calcularíamos saldo pendiente)
               amount: order.total_amount || '',
               description: `${type === 'Expense' ? 'Pago a Proveedor' : 'Cobro a Cliente'} - Orden #${order.id}`
             });
           }
         } catch (err) {
-          console.error("Error cargando bancos:", err);
+          console.error(err);
           setError("No se pudieron cargar las cuentas bancarias.");
         } finally {
           setLoadingBanks(false);
@@ -49,7 +45,6 @@ const PaymentModal = ({ open, onClose, order, type = 'Expense', onSuccess }) => 
   }, [open, order, type]);
 
   const handleSubmit = async () => {
-    // Validaciones básicas
     if (!formData.bank_account || !formData.amount || parseFloat(formData.amount) <= 0) {
       setError("Por favor seleccione una cuenta y un monto válido.");
       return;
@@ -57,30 +52,23 @@ const PaymentModal = ({ open, onClose, order, type = 'Expense', onSuccess }) => 
 
     setLoading(true);
     setError(null);
-    const token = JSON.parse(localStorage.getItem('tokens'))?.access;
 
     try {
-      // Construimos el payload para el Backend
       const payload = {
-        movement_type: type, // 'Expense' (Pago) o 'Income' (Cobro)
+        movement_type: type,
         amount: formData.amount,
         description: formData.description,
-        
-        // Si es Gasto (Pago), el dinero sale del banco seleccionado
         from_bank_account: type === 'Expense' ? formData.bank_account : null,
-        
-        // Si es Ingreso (Cobro), el dinero entra al banco seleccionado
         to_bank_account: type === 'Income' ? formData.bank_account : null,
-        
-        // Enlace a la orden correspondiente para trazabilidad
         purchase_order: type === 'Expense' ? order?.id : null,
         sales_order: type === 'Income' ? order?.id : null,
       };
 
-      await createTreasuryMovement(payload, token);
+      // CORRECCIÓN: Llamada sin token manual
+      await createTreasuryMovement(payload);
       
-      if (onSuccess) onSuccess(); // Notificar al padre que refresque
-      onClose(); // Cerrar modal
+      if (onSuccess) onSuccess();
+      onClose();
     } catch (err) {
       console.error(err);
       setError(err.message || "Error al procesar la transacción.");
@@ -98,7 +86,6 @@ const PaymentModal = ({ open, onClose, order, type = 'Expense', onSuccess }) => 
       <DialogContent sx={{ mt: 2 }}>
         {error && <Alert severity="error" sx={{ mb: 2, mt: 2 }}>{error}</Alert>}
         
-        {/* Resumen de la Orden */}
         <Box sx={{ my: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1, border: '1px solid #e0e0e0' }}>
           <Typography variant="subtitle2" color="text.secondary">Documento Relacionado</Typography>
           <Box display="flex" justifyContent="space-between" alignItems="center">

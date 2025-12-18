@@ -5,24 +5,23 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getSalesOrder } from '../api/salesService'; // Usamos la función nueva
-import { useAuth } from '../context/AuthContext';
+import { getSalesOrder } from '../api/salesService'; 
+// CORRECCIÓN: Eliminamos useAuth
 
 const SalesOrderDetailPage = () => {
-  const { id } = useParams(); // Captura el ID de la URL
-  const { tokens } = useAuth();
+  const { id } = useParams();
   const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (tokens?.access) {
-      getSalesOrder(id, tokens.access)
-        .then(data => setOrder(data))
-        .catch(err => console.error(err))
-        .finally(() => setLoading(false));
-    }
-  }, [id, tokens]);
+    // CORRECCIÓN: Eliminamos la condición if (tokens?.access)
+    // La llamada viaja con la cookie automáticamente
+    getSalesOrder(id)
+      .then(data => setOrder(data))
+      .catch(err => console.error("Error cargando orden:", err))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   if (loading) return <Box display="flex" justifyContent="center" mt={5}><CircularProgress /></Box>;
   if (!order) return <Typography>Orden no encontrada.</Typography>;
@@ -34,7 +33,6 @@ const SalesOrderDetailPage = () => {
       </Button>
       
       <Paper elevation={3} sx={{ p: 4 }}>
-        {/* Cabecera de la Orden */}
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h4">Orden #{order.id}</Typography>
           <Chip 
@@ -45,7 +43,6 @@ const SalesOrderDetailPage = () => {
         </Box>
         <Divider sx={{ mb: 3 }} />
 
-        {/* Datos del Cliente y Fecha */}
         <Grid container spacing={3} mb={4}>
           <Grid item xs={6}>
             <Typography variant="subtitle2" color="text.secondary">Cliente</Typography>
@@ -59,7 +56,6 @@ const SalesOrderDetailPage = () => {
           </Grid>
         </Grid>
 
-        {/* Tabla de Productos */}
         <Typography variant="h6" mb={2} fontWeight="bold">Detalle de Productos</Typography>
         <TableContainer component={Paper} variant="outlined">
           <Table size="small">
@@ -82,7 +78,6 @@ const SalesOrderDetailPage = () => {
                   </TableCell>
                 </TableRow>
               ))}
-              {/* Fila de Total General */}
               <TableRow>
                 <TableCell colSpan={3} align="right" sx={{ fontWeight: 'bold', fontSize: '1.1rem' }}>
                   TOTAL

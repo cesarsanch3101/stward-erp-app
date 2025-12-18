@@ -1,14 +1,11 @@
 import apiClient from './axios';
 
 // --- PROVEEDORES ---
-
-// Obtener proveedores (Limpio)
 export const getSuppliers = async () => {
   const response = await apiClient.get('/suppliers/');
-  return response.data;
+  return response.data.results || response.data;
 };
 
-// Crear proveedor (Limpio)
 export const createSupplier = async (data) => {
   try {
     const response = await apiClient.post('/suppliers/', data);
@@ -18,18 +15,10 @@ export const createSupplier = async (data) => {
   }
 };
 
-// Eliminar proveedor (Limpio)
 export const deleteSupplier = async (id) => {
   await apiClient.delete(`/suppliers/${id}/`);
 };
 
-// Obtener detalles de un proveedor (Para la edición futura)
-export const getSupplierDetails = async (id) => {
-  const response = await apiClient.get(`/suppliers/${id}/`);
-  return response.data;
-};
-
-// Actualizar proveedor
 export const updateSupplier = async (id, data) => {
   try {
     const response = await apiClient.put(`/suppliers/${id}/`, data);
@@ -41,8 +30,8 @@ export const updateSupplier = async (id, data) => {
 
 // --- ÓRDENES DE COMPRA ---
 
-export const getPurchaseOrders = async () => {
-  const response = await apiClient.get('/purchase-orders/');
+export const getPurchaseOrders = async (page = 1, pageSize = 25) => {
+  const response = await apiClient.get(`/purchase-orders/?page=${page}&page_size=${pageSize}`);
   return response.data;
 };
 
@@ -71,4 +60,17 @@ export const receivePurchaseOrder = async (id) => {
   } catch (error) {
     throw new Error(error.response?.data?.detail || "Error al recibir mercadería.");
   }
+};
+
+// --- NUEVO: OCR ---
+export const uploadInvoiceOCR = async (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const response = await apiClient.post('/purchase-orders/upload-invoice/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data', // Crucial para archivos
+    },
+  });
+  return response.data;
 };

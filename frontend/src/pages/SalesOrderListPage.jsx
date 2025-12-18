@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Button, Alert, Chip, IconButton, Tooltip, Snackbar } from '@mui/material';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import DeleteIcon from '@mui/icons-material/Delete';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import AddIcon from '@mui/icons-material/Add';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney'; // Icono dinero
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 
 import SmartTable from '../components/SmartTable';
 import SmartButton from '../components/SmartButton';
@@ -12,25 +11,39 @@ import { getSalesOrders, invoiceSalesOrder } from '../api/salesService';
 import { useNavigate } from 'react-router-dom';
 
 const SalesOrderListPage = () => {
-  const [orders, setOrders] = useState([]);
+  const navigate = useNavigate();
+
+  // Estados para SmartTable Server-Side
+  const [rows, setRows] = useState([]);
+  const [rowCount, setRowCount] = useState(0);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
-  const navigate = useNavigate();
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await getSalesOrders();
-      setOrders(data || []);
+      const page = paginationModel.page + 1;
+      const data = await getSalesOrders(page, paginationModel.pageSize);
+      
+      if (data.results) {
+        setRows(data.results);
+        setRowCount(data.count);
+      } else {
+        setRows(data);
+        setRowCount(data.length || 0);
+      }
     } catch (err) {
+      console.error(err);
       setError('Error cargando órdenes.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [paginationModel]);
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const handleInvoice = async (id) => {
     if (!window.confirm('¿Confirmar facturación y generar asiento contable?')) return;
@@ -87,7 +100,7 @@ const SalesOrderListPage = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Typography variant="h5" fontWeight={600}>Ventas</Typography>
-          <SmartButton icon={<AttachMoneyIcon />} value={orders.length} label="Total Órdenes" onClick={() => {}} />
+          <SmartButton icon={<AttachMoneyIcon />} value={rowCount} label="Total Órdenes" onClick={() => {}} />
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/sales-orders/new')}>
           Nueva Orden
@@ -96,7 +109,15 @@ const SalesOrderListPage = () => {
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <SmartTable rows={orders} columns={columns} loading={loading} onRowClick={(id) => navigate(`/sales-orders/${id}`)} />
+      <SmartTable 
+        rows={rows} 
+        columns={columns} 
+        rowCount={rowCount}
+        loading={loading} 
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        onRowClick={(id) => navigate(`/sales-orders/${id}`)} 
+      />
 
       <Snackbar open={notification.open} autoHideDuration={4000} onClose={() => setNotification({ ...notification, open: false })}>
         <Alert severity={notification.severity} sx={{ width: '100%' }}>{notification.message}</Alert>

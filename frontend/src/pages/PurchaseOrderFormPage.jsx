@@ -8,14 +8,11 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-// Servicios
 import { getSuppliers, createPurchaseOrder } from '../api/purchasingService';
 import { getProducts } from '../api/inventoryService';
-import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 
 const PurchaseOrderFormPage = () => {
-  const { tokens } = useAuth();
   const navigate = useNavigate();
   
   const [header, setHeader] = useState({ supplier: '', expected_delivery_date: '' });
@@ -29,23 +26,27 @@ const PurchaseOrderFormPage = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!tokens?.access) return;
       try {
-        // Cargar proveedores y productos para los desplegables
+        setLoading(true);
         const [suppData, prodData] = await Promise.all([
-          getSuppliers(tokens.access),
-          getProducts(tokens.access)
+          getSuppliers(),
+          getProducts() 
         ]);
-        setSuppliers(suppData || []);
-        setProducts(prodData || []);
+
+        const suppliersList = Array.isArray(suppData) ? suppData : (suppData.results || []);
+        const productsList = Array.isArray(prodData) ? prodData : (prodData.results || []);
+
+        setSuppliers(suppliersList);
+        setProducts(productsList);
       } catch (err) {
-        setError('Error cargando datos maestros.');
+        console.error(err);
+        setError('Error cargando catálogos.');
       } finally {
         setLoading(false);
       }
     };
     fetchData();
-  }, [tokens]);
+  }, []);
 
   const handleHeaderChange = (e) => setHeader({ ...header, [e.target.name]: e.target.value });
 
@@ -62,12 +63,25 @@ const PurchaseOrderFormPage = () => {
     e.preventDefault();
     if (!header.supplier) { setError("Seleccione un proveedor."); return; }
     
+    if (items.length === 0 || !items[0].product) {
+       setError("Agregue al menos un producto válido.");
+       return;
+    }
+
     setSaving(true);
     try {
-      await createPurchaseOrder({ ...header, items }, tokens.access);
-      navigate('/purchase-orders'); // Volver a la lista
+      // CORRECCIÓN: Si la fecha está vacía, enviar null
+      const payload = {
+        ...header,
+        expected_delivery_date: header.expected_delivery_date || null,
+        items
+      };
+
+      await createPurchaseOrder(payload);
+      navigate('/purchase-orders');
     } catch (err) {
-      setError(err.message);
+      console.error(err);
+      setError(err.message || "Error al crear la orden.");
     } finally {
       setSaving(false);
     }
@@ -79,7 +93,7 @@ const PurchaseOrderFormPage = () => {
     <Container maxWidth="lg">
       <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/purchase-orders')} sx={{ my: 2 }}>Volver</Button>
       <Paper elevation={3} sx={{ p: 4 }}>
-        <Typography variant="h5" mb={3}>Nueva Orden de Compra</Typography>
+        <Typography variant="h5" mb={3} fontWeight={600}>Nueva Orden de Compra</Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
         <Box component="form" onSubmit={handleSubmit}>
@@ -101,15 +115,15 @@ const PurchaseOrderFormPage = () => {
           </Grid>
 
           <Typography variant="h6" mb={2}>Productos</Typography>
-          <TableContainer sx={{ mb: 2 }}>
+          <TableContainer sx={{ mb: 2, border: '1px solid #eee', borderRadius: 1 }}>
             <Table size="small">
-              <TableHead>
+              <TableHead sx={{ bgcolor: '#f5f5f5' }}>
                 <TableRow>
                   <TableCell width="40%">Producto</TableCell>
                   <TableCell width="20%">Cantidad</TableCell>
                   <TableCell width="20%">Costo Unit.</TableCell>
                   <TableCell width="10%">Total</TableCell>
-                  <TableCell width="10%">Acción</TableCell>
+                  <TableCell width="10%"></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

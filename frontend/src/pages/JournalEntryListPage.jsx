@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, Button, Alert, Chip } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DescriptionIcon from '@mui/icons-material/Description';
-import VisibilityIcon from '@mui/icons-material/Visibility'; // Icono ver
 
 import SmartTable from '../components/SmartTable';
 import SmartButton from '../components/SmartButton';
@@ -10,24 +9,35 @@ import { getJournalEntries } from '../api/accountingService';
 import { useNavigate } from 'react-router-dom';
 
 const JournalEntryListPage = () => {
-  const [entries, setEntries] = useState([]);
+  const navigate = useNavigate();
+  const [rows, setRows] = useState([]);
+  const [rowCount, setRowCount] = useState(0);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const navigate = useNavigate();
 
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const data = await getJournalEntries();
-      setEntries(Array.isArray(data) ? data : (data.results || []));
+      const page = paginationModel.page + 1;
+      const data = await getJournalEntries(page, paginationModel.pageSize);
+      
+      if (data.results) {
+        setRows(data.results);
+        setRowCount(data.count);
+      } else {
+        setRows(data);
+        setRowCount(data.length || 0);
+      }
     } catch (err) {
+      console.error(err);
       setError("Error cargando Libro Diario.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [paginationModel]);
 
-  useEffect(() => { fetchEntries(); }, []);
+  useEffect(() => { fetchEntries(); }, [fetchEntries]);
 
   const columns = [
     { field: 'id', headerName: 'ID', width: 70 },
@@ -52,7 +62,7 @@ const JournalEntryListPage = () => {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Typography variant="h5" fontWeight={600}>Libro Diario</Typography>
-          <SmartButton icon={<DescriptionIcon />} value={entries.length} label="Asientos" onClick={() => {}} />
+          <SmartButton icon={<DescriptionIcon />} value={rowCount} label="Asientos" onClick={() => {}} />
         </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate('/journal-entries/new')}>
           Nuevo Asiento
@@ -60,7 +70,14 @@ const JournalEntryListPage = () => {
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      <SmartTable rows={entries} columns={columns} loading={loading} />
+      <SmartTable 
+        rows={rows} 
+        columns={columns} 
+        rowCount={rowCount}
+        loading={loading} 
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+      />
     </Box>
   );
 };

@@ -1,29 +1,25 @@
 import apiClient from './axios';
 
-// Obtener empleados (Sin token manual)
-export const getEmployees = async () => {
-  const response = await apiClient.get('/employees/');
-  return response.data;
+// ACTUALIZADO: Soporte para paginación
+export const getEmployees = async (page = 1, pageSize = 25) => {
+  const response = await apiClient.get(`/employees/?page=${page}&page_size=${pageSize}`);
+  return response.data; // Retorna { count, results }
 };
 
-// Crear empleado
 export const createEmployee = async (employeeData) => {
   const response = await apiClient.post('/employees/', employeeData);
   return response.data;
 };
 
-// Borrar empleado
 export const deleteEmployee = async (id) => {
   await apiClient.delete(`/employees/${id}/`);
 };
 
-// Obtener uno
 export const getEmployee = async (id) => {
   const response = await apiClient.get(`/employees/${id}/`);
   return response.data;
 };
 
-// Actualizar
 export const updateEmployee = async (id, employeeData) => {
   const response = await apiClient.put(`/employees/${id}/`, employeeData);
   return response.data;

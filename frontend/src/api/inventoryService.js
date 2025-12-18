@@ -1,19 +1,22 @@
 import apiClient from './axios';
 
 // --- LECTURA ---
-export const getProducts = async () => {
-  const response = await apiClient.get('/products/');
-  return response.data;
+
+// ACTUALIZADO: Soporte para paginación
+export const getProducts = async (page = 1, pageSize = 25) => {
+  const response = await apiClient.get(`/products/?page=${page}&page_size=${pageSize}`);
+  return response.data; // Devuelve { count, results }
 };
 
 export const getCategories = async () => {
   const response = await apiClient.get('/categories/');
-  return response.data;
+  // Manejo robusto por si activamos paginación en categorías a futuro
+  return Array.isArray(response.data) ? response.data : (response.data.results || []);
 };
 
 export const getUnitsOfMeasure = async () => {
   const response = await apiClient.get('/units/');
-  return response.data;
+  return Array.isArray(response.data) ? response.data : (response.data.results || []);
 };
 
 export const getProductKardex = async (productId) => {
