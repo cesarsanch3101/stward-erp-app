@@ -2,36 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { 
   Box, TextField, Button, Typography, Container, Grid, Paper, Alert, CircularProgress 
 } from '@mui/material';
-import { getCustomerDetails, updateCustomer } from '../api/salesService'; 
-// Eliminamos useAuth para no depender de tokens manuales
+import { getSuppliers, updateSupplier } from '../api/purchasingService'; // Usamos getSuppliers filtrado o necesitamos getSupplierDetails
 import { useParams, useNavigate } from 'react-router-dom';
+import apiClient from '../api/axios'; // Import directo para obtener detalle si no existe la fn en servicio
 
-const CustomerEditPage = () => {
-  const { id } = useParams(); 
+const SupplierEditPage = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     name: '', contact_person: '', email: '', phone_number: '', address: '',
-    ruc: '', dv: '', taxpayer_type: 'Juridico' // Agregamos campos fiscales por si acaso
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Cargar datos al entrar (Sin tokens manuales)
   useEffect(() => {
-    const loadCustomer = async () => {
+    const loadSupplier = async () => {
       try {
-        setLoading(true);
-        const data = await getCustomerDetails(id);
-        setFormData(data);
+        // Obtenemos el detalle directamente (asegúrate que tu API soporte GET /suppliers/{id}/)
+        // O agrega la función getSupplierDetails en purchasingService.js
+        const response = await apiClient.get(`/suppliers/${id}/`);
+        setFormData(response.data);
       } catch (err) {
-        setError('Error al cargar datos del cliente.');
-        console.error(err);
+        setError('Error al cargar datos del proveedor.');
       } finally {
         setLoading(false);
       }
     };
-    loadCustomer();
+    loadSupplier();
   }, [id]);
 
   const handleChange = (e) => {
@@ -41,10 +39,10 @@ const CustomerEditPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await updateCustomer(id, formData);
-      navigate('/customers'); 
+      await updateSupplier(id, formData); // Asegúrate de tener esta función en purchasingService (la corregimos en el paso anterior)
+      navigate('/suppliers');
     } catch (err) {
-      setError(err.message || 'Error al actualizar cliente.');
+      setError('Error al actualizar proveedor.');
     }
   };
 
@@ -53,23 +51,15 @@ const CustomerEditPage = () => {
   return (
     <Container maxWidth="md">
       <Paper elevation={3} sx={{ p: 4, mt: 4 }}>
-        <Typography variant="h5" mb={3}>Editar Cliente</Typography>
+        <Typography variant="h5" mb={3}>Editar Proveedor</Typography>
         
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         
         <Box component="form" onSubmit={handleSubmit}>
           <Grid container spacing={2}>
             <Grid item xs={12}>
-                <TextField fullWidth label="Razón Social / Nombre" name="name" value={formData.name} onChange={handleChange} required />
+                <TextField fullWidth label="Empresa" name="name" value={formData.name} onChange={handleChange} required />
             </Grid>
-            {/* Campos Fiscales Panamá (Visualización básica) */}
-            <Grid item xs={8}>
-                <TextField fullWidth label="RUC" name="ruc" value={formData.ruc || ''} onChange={handleChange} />
-            </Grid>
-            <Grid item xs={4}>
-                <TextField fullWidth label="DV" name="dv" value={formData.dv || ''} onChange={handleChange} />
-            </Grid>
-
             <Grid item xs={6}>
                 <TextField fullWidth label="Contacto" name="contact_person" value={formData.contact_person} onChange={handleChange} />
             </Grid>
@@ -85,7 +75,7 @@ const CustomerEditPage = () => {
           </Grid>
 
           <Box mt={3} display="flex" justifyContent="flex-end" gap={2}>
-            <Button variant="outlined" onClick={() => navigate('/customers')}>Cancelar</Button>
+            <Button variant="outlined" onClick={() => navigate('/suppliers')}>Cancelar</Button>
             <Button type="submit" variant="contained">Guardar Cambios</Button>
           </Box>
         </Box>
@@ -94,4 +84,4 @@ const CustomerEditPage = () => {
   );
 };
 
-export default CustomerEditPage;
+export default SupplierEditPage;

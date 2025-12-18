@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, TextField, Button, Typography, Container, Grid, Paper, Alert } from '@mui/material';
+import { Box, TextField, Button, Typography, Container, Grid, Paper, Alert, MenuItem } from '@mui/material';
 import { createCustomer } from '../api/salesService';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,6 +7,7 @@ const CustomerFormPage = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '', contact_person: '', email: '', phone_number: '', address: '',
+    ruc: '', dv: '', taxpayer_type: 'Juridico'
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -21,11 +22,11 @@ const CustomerFormPage = () => {
     setLoading(true);
 
     try {
-      await createCustomer(formData); // Llamada limpia
+      await createCustomer(formData); // Sin tokens, directo al servicio limpio
       navigate('/customers');
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Error al guardar el cliente.';
-      setError(msg);
+      // El servicio ahora lanza un Error con el mensaje parseado
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -40,6 +41,22 @@ const CustomerFormPage = () => {
             <Grid item xs={12}>
               <TextField fullWidth label="Razón Social / Nombre" name="name" autoFocus required value={formData.name} onChange={handleChange} />
             </Grid>
+            
+            {/* Campos RUC Panamá */}
+            <Grid item xs={8}>
+               <TextField fullWidth label="RUC" name="ruc" required value={formData.ruc} onChange={handleChange} placeholder="Ej: 1556988-1-658425" />
+            </Grid>
+            <Grid item xs={4}>
+               <TextField fullWidth label="DV" name="dv" required value={formData.dv} onChange={handleChange} placeholder="00" />
+            </Grid>
+            <Grid item xs={12}>
+               <TextField select fullWidth label="Tipo Contribuyente" name="taxpayer_type" value={formData.taxpayer_type} onChange={handleChange}>
+                  <MenuItem value="Juridico">Persona Jurídica</MenuItem>
+                  <MenuItem value="Natural">Persona Natural</MenuItem>
+                  <MenuItem value="Extranjero">Extranjero</MenuItem>
+               </TextField>
+            </Grid>
+
             <Grid item xs={12} sm={6}>
               <TextField fullWidth label="Contacto" name="contact_person" value={formData.contact_person} onChange={handleChange} />
             </Grid>

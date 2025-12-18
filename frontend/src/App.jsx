@@ -34,6 +34,7 @@ import EmployeeEditPage from './pages/EmployeeEditPage.jsx';
 import CustomerEditPage from './pages/CustomerEditPage.jsx';
 import SalesOrderDetailPage from './pages/SalesOrderDetailPage.jsx';
 import AccountEditPage from './pages/AccountEditPage.jsx';
+import SupplierEditPage from './pages/SupplierEditPage.jsx';
 
 // Componentes de Estructura
 import Layout from './components/Layout.jsx';
@@ -76,7 +77,7 @@ function App() {
           {/* Compras */}
           <Route path="suppliers" element={<SupplierListPage />} />
           <Route path="suppliers/new" element={<SupplierFormPage />} />
-          {/* ¡AQUÍ ESTÁN LAS RUTAS NUEVAS! */}
+          <Route path="suppliers/edit/:id" element={<SupplierEditPage />} />
           <Route path="purchase-orders" element={<PurchaseOrderListPage />} />
           <Route path="purchase-orders/new" element={<PurchaseOrderFormPage />} />
 

@@ -45,11 +45,14 @@ const SupplierListPage = () => {
       field: 'actions', headerName: 'Acciones', width: 120,
       renderCell: (params) => (
         <Box>
-          <IconButton size="small" onClick={(e) => { e.stopPropagation(); console.log('Edit', params.row.id); }}>
+          <IconButton 
+            size="small" 
+            onClick={(e) => { 
+                e.stopPropagation(); 
+                navigate(`/suppliers/edit/${params.row.id}`); // <--- ACTUALIZADO
+            }}
+          >
             <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton size="small" color="error" onClick={(e) => { e.stopPropagation(); handleDelete(params.row.id); }}>
-            <DeleteIcon fontSize="small" />
           </IconButton>
         </Box>
       ),
