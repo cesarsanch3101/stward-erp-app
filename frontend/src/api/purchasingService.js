@@ -1,9 +1,10 @@
 import apiClient from './axios';
 
 // --- PROVEEDORES ---
-export const getSuppliers = async () => {
-  const response = await apiClient.get('/suppliers/');
-  return response.data.results || response.data;
+export const getSuppliers = async (page = 1, pageSize = 25) => {
+  const response = await apiClient.get(`/suppliers/?page=${page}&page_size=${pageSize}`);
+  // El backend siempre devuelve {count, results} con paginación activada
+  return response.data; 
 };
 
 export const createSupplier = async (data) => {

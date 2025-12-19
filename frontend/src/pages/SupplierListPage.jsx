@@ -21,17 +21,9 @@ const SupplierListPage = () => {
   const fetchSuppliers = useCallback(async () => {
     setLoading(true);
     try {
-      // getSuppliers ya lo actualizamos en la fase anterior para soportar args, 
-      // pero por seguridad lo llamamos con paginación
-      const page = paginationModel.page + 1;
-      // Nota: Si getSuppliers en purchasingService.js aún no soporta params, 
-      // asegúrate de que el archivo del paso anterior se aplicó.
-      // Aquí asumimos que retorna {results, count} o array directo.
-      const data = await getSuppliers(); 
-      // *NOTA*: Si getSuppliers no acepta argumentos en tu versión actual, 
-      // el API devolverá la pág 1 por defecto debido a settings.py.
-      // Para paginación real, purchasingService.js debe aceptar (page, pageSize).
-      // Asumiremos que devuelve la estructura paginada.
+      const page = paginationModel.page + 1; // DRF base 1
+      // CORRECCIÓN: Pasamos los parámetros de paginación
+      const data = await getSuppliers(page, paginationModel.pageSize);
       
       if (data.results) {
         setRows(data.results);

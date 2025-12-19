@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 from inventory.models import Product
 from django.core.exceptions import ValidationError
-from .utils_panama import calculate_dv_panama, calculate_tax_amount # Importamos utilidad
+from .utils_panama import calculate_dv_panama, calculate_tax_amount
 
 class Customer(models.Model):
     TAXPAYER_TYPES = [
@@ -25,7 +25,7 @@ class Customer(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):
-        # Validar RUC antes de guardar
+        # Validar RUC antes de guardar (usando la lógica flexible)
         is_valid, msg = calculate_dv_panama(self.ruc)
         if not is_valid and self.taxpayer_type != 'Extranjero':
             raise ValidationError({'ruc': msg})
@@ -53,7 +53,7 @@ class SalesOrder(models.Model):
     
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='created_sales_orders')
     
-    # --- TOTALES FINANCIEROS (PANAMÁ) ---
+    # --- TOTALES FINANCIEROS ---
     subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     tax_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="ITBMS Total")
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
@@ -65,8 +65,8 @@ class SalesOrder(models.Model):
         """
         Recalcula subtotal, impuestos y total basado en las líneas.
         """
-        self.subtotal = sum(item.total_line for item in self.items.all())
-        # El impuesto se calcula línea por línea para mayor precisión fiscal
+        # CORRECCIÓN: Usamos 'item.total_price' en lugar de 'item.total_line'
+        self.subtotal = sum(item.total_price for item in self.items.all())
         self.tax_amount = sum(item.tax_line for item in self.items.all())
         self.total_amount = self.subtotal + self.tax_amount
         self.save()
@@ -78,16 +78,18 @@ class SOItem(models.Model):
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     
-    # Panamá: 0.07 (General), 0.10 (Licores), 0.15 (Tabaco), 0.00 (Alimentos/Medicinas)
+    # Impuesto (7% por defecto)
     tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.07, help_text="0.07 para 7%")
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name}"
 
+    # CORRECCIÓN: Renombramos la propiedad a 'total_price' para que coincida con el Serializer
     @property
-    def total_line(self):
+    def total_price(self):
         return self.quantity * self.unit_price
 
     @property
     def tax_line(self):
-        return calculate_tax_amount(self.total_line, float(self.tax_rate))
+        # Actualizamos la referencia interna también
+        return calculate_tax_amount(self.total_price, float(self.tax_rate))

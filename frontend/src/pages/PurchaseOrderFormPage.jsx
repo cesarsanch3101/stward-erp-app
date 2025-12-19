@@ -24,17 +24,19 @@ const PurchaseOrderFormPage = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
+useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const [suppData, prodData] = await Promise.all([
-          getSuppliers(),
-          getProducts() 
+          // CORRECCIÓN: Pedimos 100 registros para llenar el combo
+          getSuppliers(1, 100), 
+          getProducts(1, 100) 
         ]);
 
-        const suppliersList = Array.isArray(suppData) ? suppData : (suppData.results || []);
-        const productsList = Array.isArray(prodData) ? prodData : (prodData.results || []);
+        // Manejo robusto de la respuesta paginada
+        const suppliersList = suppData.results || suppData || [];
+        const productsList = prodData.results || prodData || [];
 
         setSuppliers(suppliersList);
         setProducts(productsList);

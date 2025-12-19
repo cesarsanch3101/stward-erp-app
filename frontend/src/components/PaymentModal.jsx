@@ -23,7 +23,7 @@ const PaymentModal = ({ open, onClose, order, type = 'Expense', onSuccess }) => 
         setLoadingBanks(true);
         try {
           // CORRECCIÓN: Llamada sin argumentos (token)
-          const data = await getBankAccounts();
+          const data = await getBankAccounts(1, 100); // Traer hasta 100 cuentas para el select
           setBanks(data || []);
           
           if (order) {
