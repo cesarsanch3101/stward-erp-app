@@ -1,7 +1,5 @@
 from rest_framework import serializers
 from .models import Customer, SalesOrder, SOItem
-# No necesitamos ProductSerializer aquí si no lo usamos explícitamente, 
-# pero lo dejamos por si acaso.
 
 class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,14 +19,12 @@ class CustomerSerializer(serializers.ModelSerializer):
 class SOItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
     
-    # --- CORRECCIÓN 1: Mapeo para el Frontend ---
-    # Le decimos a Django: "Cuando el frontend pida 'total_price', 
-    # dale el valor de 'total_line' del modelo".
+    # Mapeamos 'total_price' del frontend a la lógica del backend
     total_price = serializers.DecimalField(
         max_digits=12, 
         decimal_places=2, 
         read_only=True, 
-        source='total_line'  # <--- CLAVE: Apunta a la propiedad real del modelo
+        source='total_line' 
     )
 
     class Meta:
@@ -73,10 +69,10 @@ class SalesOrderSerializer(serializers.ModelSerializer):
         for item_data in items_data:
             item = SOItem.objects.create(sales_order=sales_order, **item_data)
             
-            # --- CORRECCIÓN 2: Cálculo Interno ---
-            # Aquí usamos el nombre REAL de la propiedad en el modelo (models.py)
-            # El error ocurría porque aquí decía 'item.total_price'
-            total_order_amount += item.total_line 
+            # CÁLCULO EXPLÍCITO (A prueba de fallos)
+            # Multiplicamos directamente los campos del objeto creado
+            line_total = item.quantity * item.unit_price
+            total_order_amount += line_total
 
         sales_order.total_amount = total_order_amount
         sales_order.save()
