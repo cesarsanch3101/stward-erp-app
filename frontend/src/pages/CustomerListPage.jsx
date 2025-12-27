@@ -9,7 +9,6 @@ import SmartTable from '../components/SmartTable';
 import SmartButton from '../components/SmartButton';
 import { getCustomers, deleteCustomer } from '../api/salesService';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../api/axios'; // Import directo para paginación manual si el servicio no está adaptado
 
 const CustomerListPage = () => {
   const navigate = useNavigate();
@@ -24,19 +23,20 @@ const CustomerListPage = () => {
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
     try {
-      // Calculamos offset/limit para la API o usamos page param
-      const page = paginationModel.page + 1; // DRF usa base 1
-      const response = await apiClient.get(`/customers/?page=${page}&page_size=${paginationModel.pageSize}`);
+      // DRF usa base 1 para paginación
+      const page = paginationModel.page + 1; 
+      const data = await getCustomers(page, paginationModel.pageSize);
       
       // Manejo robusto: DRF paginado devuelve { count, results }
-      // Si la API no estuviera paginada, devuelve array directo.
-      const data = response.data;
-      if (Array.isArray(data)) {
+      if (data.results) {
+         setRows(data.results);
+         setRowCount(data.count);
+      } else if (Array.isArray(data)) {
          setRows(data);
          setRowCount(data.length);
       } else {
-         setRows(data.results || []);
-         setRowCount(data.count || 0);
+         setRows([]);
+         setRowCount(0);
       }
     } catch (err) {
       console.error(err);
@@ -61,20 +61,28 @@ const CustomerListPage = () => {
     }
   };
 
+  // --- COLUMNAS ACTUALIZADAS (Fiscal + Contacto) ---
   const columns = [
     { field: 'name', headerName: 'Razón Social', flex: 1.5, minWidth: 200, renderCell: (p) => <b>{p.value}</b> },
-    { field: 'ruc', headerName: 'RUC', width: 150 },
     { 
-      field: 'taxpayer_type', headerName: 'Tipo', width: 130,
-      renderCell: (p) => <Chip label={p.value} size="small" variant="outlined" />
+      field: 'ruc', headerName: 'RUC', width: 140,
+      renderCell: (params) => (
+        <span style={{ fontFamily: 'monospace' }}>
+          {params.value}{params.row.dv ? `-${params.row.dv}` : ''}
+        </span>
+      )
     },
     { field: 'contact_person', headerName: 'Contacto', flex: 1, minWidth: 150 },
-    { field: 'email', headerName: 'Email', flex: 1, minWidth: 200 },
-    { field: 'phone_number', headerName: 'Teléfono', width: 120 },
+    { 
+      field: 'taxpayer_type', headerName: 'Tipo', width: 120,
+      renderCell: (p) => {
+        const map = { 'Juridico': 'primary', 'Natural': 'success', 'Extranjero': 'warning' };
+        return <Chip label={p.value} color={map[p.value] || 'default'} size="small" variant="outlined" />;
+      }
+    },
+    { field: 'email', headerName: 'Email', flex: 1, minWidth: 180 },
     {
-      field: 'actions',
-      headerName: 'Acciones',
-      width: 100,
+      field: 'actions', headerName: 'Acciones', width: 100, sortable: false,
       renderCell: (params) => (
         <Box>
           <IconButton size="small" onClick={(e) => { e.stopPropagation(); navigate(`/customers/edit/${params.row.id}`); }}>

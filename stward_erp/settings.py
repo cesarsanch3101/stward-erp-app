@@ -1,4 +1,5 @@
 import os
+import sys  # <--- NUEVO: Necesario para modificar las rutas
 from pathlib import Path
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -9,37 +10,49 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# --- ARQUITECTURA STWARD: Rutas de Apps ---
+# Añadimos las nuevas carpetas al path para que Django las encuentre como si estuvieran en la raíz
+sys.path.insert(0, os.path.join(BASE_DIR, 'shared_apps'))
+sys.path.insert(0, os.path.join(BASE_DIR, 'tenant_apps'))
+
 # --- SEGURIDAD CRÍTICA ---
-# En producción, SECRET_KEY debe venir de .env
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-me-prod-key-stward-erp')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,.localhost').split(',')
 
+# --- MODELO DE USUARIO STWARD ---
+# Vital para SaaS Multi-Tenant. Apunta a nuestro modelo personalizado.
+AUTH_USER_MODEL = 'users.User'
+
 # --- APLICACIONES (ARQUITECTURA MULTI-TENANT) ---
-# SHARED_APPS: Tablas que viven en el esquema 'public' (Usuarios globales, Clientes SaaS)
+# SHARED_APPS: Tablas que viven en el esquema 'public'
 SHARED_APPS = [
     'django_tenants',  # OBLIGATORIO: Debe ser la primera
-    'tenants',         # Gestión de inquilinos (Empresas/Dominios)
-    'users',           # Usuarios globales y autenticación
+    'tenants',         # Ahora en shared_apps/tenants
+    'users',           # Ahora en shared_apps/users (Custom User Model)
+    
+    # Django Apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
+    # Terceros
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist', # Para logout seguro
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'drf_spectacular', # Documentación API
 ]
 
-# TENANT_APPS: Tablas que se crean en CADA esquema de cliente (tesla, cocacola, etc.)
+# TENANT_APPS: Tablas que se crean en CADA esquema de cliente
 TENANT_APPS = [
-    #'django.contrib.auth',  Necesario para permisos locales
     'django.contrib.contenttypes',
     'django.contrib.messages',
-    # --- APPS DE NEGOCIO STWARD ---
+    
+    # --- APPS DE NEGOCIO (Viven en tenant_apps) ---
     'hr',
     'inventory',
     'purchasing',
@@ -47,7 +60,6 @@ TENANT_APPS = [
     'treasury',
     'accounting',
     'reports',
-    # 'ai_core', # Descomentar cuando creemos la app separada, por ahora está en inventory
 ]
 
 # INSTALLED_APPS final combina ambas listas
@@ -55,13 +67,8 @@ INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in S
 
 # --- MIDDLEWARE ---
 MIDDLEWARE = [
-    # 1. CORS PRIMERO: Para que responda a OPTIONS antes de buscar inquilinos
     'corsheaders.middleware.CorsMiddleware', 
-    
-    # 2. Tenants Segundo: Ahora sí, resolvemos el esquema
     'django_tenants.middleware.main.TenantMainMiddleware', 
-    
-    # 3. Resto de Middlewares estándar
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -70,6 +77,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 ROOT_URLCONF = 'stward_erp.urls'
 
 # Configuración del modelo de Inquilinos
@@ -101,7 +109,7 @@ DATABASES = {
         'NAME': os.getenv('DB_NAME', 'stward_db'),
         'USER': os.getenv('DB_USER', 'stward_user'),
         'PASSWORD': os.getenv('DB_PASSWORD', 'stward_password'),
-        'HOST': os.getenv('DB_HOST', 'db'), # Nombre del servicio en docker-compose
+        'HOST': os.getenv('DB_HOST', 'db'),
         'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
@@ -136,28 +144,25 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
-    # --- PAGINACIÓN ENTERPRISE ---
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 25,  # Coincide con el default del DataGrid
+    'PAGE_SIZE': 25,
     'DATETIME_FORMAT': "%d/%m/%Y %H:%M:%S",
     'DATE_FORMAT': "%d/%m/%Y",
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60), # Aumentamos tiempo para desarrollo
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'SIGNING_KEY': SECRET_KEY,
     'AUTH_HEADER_TYPES': ('Bearer',),
-    
-    # --- CONFIGURACIÓN DE COOKIES ---
-    'AUTH_COOKIE': 'access_token',          # Nombre de la cookie de acceso
-    'AUTH_COOKIE_REFRESH': 'refresh_token', # Nombre de la cookie de refresco
-    'AUTH_COOKIE_SECURE': not DEBUG,        # False en dev (http), True en prod (https)
-    'AUTH_COOKIE_HTTP_ONLY': True,          # JavaScript no la ve (Seguridad)
-    'AUTH_COOKIE_PATH': '/',                # Disponible en todo el sitio
-    'AUTH_COOKIE_SAMESITE': 'Lax',          # Protección CSRF básica
+    'AUTH_COOKIE': 'access_token',
+    'AUTH_COOKIE_REFRESH': 'refresh_token',
+    'AUTH_COOKIE_SECURE': not DEBUG,
+    'AUTH_COOKIE_HTTP_ONLY': True,
+    'AUTH_COOKIE_PATH': '/',
+    'AUTH_COOKIE_SAMESITE': 'Lax',
 }
 
 # --- DOCUMENTACIÓN API ---
@@ -172,9 +177,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://172.16.1.18:5173",
-    "http://tesla.localhost:5173", # <--- ¡AGREGADO!
+    "http://tesla.localhost:5173",
 ]
-CORS_ALLOW_CREDENTIALS = True # Necesario para enviar cookies
+CORS_ALLOW_CREDENTIALS = True
 
 # --- CELERY & REDIS (TAREAS ASÍNCRONAS & IA) ---
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER", "redis://redis:6379/0")

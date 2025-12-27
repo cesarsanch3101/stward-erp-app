@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Grid, Card, CardContent, Typography, Box, CircularProgress, Alert } from '@mui/material';
+import { Card, CardContent, Typography, Box, CircularProgress, Alert, Grid } from '@mui/material';
+// NOTA: Usamos el Grid clásico temporalmente para asegurar la carga
+// import Grid from '@mui/material/Grid2'; 
 import { getProfitAndLoss } from '../api/reportsService.js';
-// Ya no necesitamos useAuth aquí porque no manejamos tokens manualmente
 
 const KpiCard = ({ title, value, loading, formatAsMoney = true }) => (
   <Card sx={{ minHeight: 120 }}>
@@ -30,12 +31,9 @@ const DashboardPage = () => {
       try {
         setLoading(true);
         setError(null);
-        // Llamada limpia, sin pasar tokens
         const data = await getProfitAndLoss();
         setReportData(data);
       } catch (err) {
-        // Si falla (ej. 401), el interceptor de axios o el error boundary lo manejará,
-        // pero aquí mostramos un mensaje amigable.
         console.error(err);
         setError('Error al cargar datos financieros.');
       } finally {
@@ -56,6 +54,7 @@ const DashboardPage = () => {
         <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>
       )}
 
+      {/* Usamos sintaxis Grid v1 (Clásica) para evitar errores de importación */}
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
           <KpiCard 
